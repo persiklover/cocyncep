@@ -7,6 +7,8 @@ var canvas2;
 var ctx2;
 var scale = 1;
 
+var io;
+
 var animationList = {
   "archer": new Animation(
     Loader.loadImage(`img/archer.png`),
@@ -30,6 +32,63 @@ var statsList = {
 
   }
 };
+
+function connect() {
+  io = io();
+  io.on('connect_error', function (err) {
+    // gui.log("failed to connect!");
+  });
+
+  // c_ -> sent from client
+  // s_ -> sent from server
+  // io.emit('c_enter', {
+  //   name: player.name,
+  //   className: player.className,
+  //   x: player.x,
+  //   y: player.y,
+  //   facingRight: player.facingRight,
+  //   currentState: player.currentState
+  // });
+
+  // io.on('s_enter', function (playerData) {
+  //   addDebil(playerData.x, playerData.y, playerData.className, playerData.name, playerData.id);
+  // });
+
+  // io.on('s_update', function (playerData) {
+  //   var p = players[playerData.id];
+  //   p.x = playerData.x;
+  //   p.y = playerData.y;
+  //   p.facingDirection.x = (playerData.facingRight) ? 1 : -1;
+  //   p.currentState = playerData.currentState;
+  // });
+
+  // io.on('s_changedDir', function (playerData) {
+  //   var p = players[playerData.id];
+  //   p.facingDirection.x = (playerData.facingRight) ? 1 : -1;
+  // });
+
+  // io.on('s_rest', function (id) {
+  //   var p = players[id];
+  //   p.currentState = 0;
+  // });
+
+  // io.on('s_leave', function (id) {
+  //   console.log(`${id} left :(`);
+  //   // todo: remove
+  //   delete players[id];
+  // });
+
+  // io.on('s_hello', function (packet) {
+  //   console.log(packet);
+
+  //   var players = packet.players;
+  //   for (var key of Object.keys(players)) {
+  //     var playerData = players[key];
+
+  //     addDebil(playerData.pos.x, playerData.pos.y, playerData.className, playerData.name, playerData.id);
+  //   }
+  // });
+}
 
 var Game = (function() {
 
@@ -58,6 +117,8 @@ var Game = (function() {
 
   function init() {
     resize();
+
+    connect();
 
     gsm = new GameStateManager();
   }

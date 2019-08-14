@@ -97,16 +97,9 @@ var MenuState = (function() {
 
       // Enter
       if (keyCode == 13) {
-        if (isValid(name)) {
-          console.log(`${name} (${classNames[currentChoice]})`);
-          this.gsm.setState(this.gsm.GAMESTATE, {
-            username:  name,
-            className: classNames[currentChoice]
-          });
-        }
-        else {
-          console.warn('Invalid name');
-        }
+        io.emit("c_nameValidation", name);
+        console.log(name + " sent");
+        
       }
 
       // Prev character

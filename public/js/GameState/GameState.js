@@ -34,89 +34,6 @@ var GameState = (function () {
 
   var cursorImg = Loader.loadImage('img/cursor.png');
 
-  function connect() {
-    io = io();
-    io.on('connect_error', function(err) {
-      gui.log("failed to connect!");
-    });
-
-    // c_ -> sent from client
-    // s_ -> sent from server
-    io.emit('c_enter', {
-      name:         player.name,
-      className:    player.className,
-      x:            player.x,
-      y:            player.y,
-      facingRight:  player.facingRight,
-      currentState: player.currentState
-    });
-
-    io.on('s_enter', function (playerData) {
-      addDebil(playerData.x, playerData.y, playerData.className, playerData.name, playerData.id);
-    });
-
-    io.on('s_update', function (playerData) {
-      var p = players[playerData.id];
-      p.x            = playerData.x;
-      p.y            = playerData.y;
-      p.facingDirection.x = (playerData.facingRight) ? 1 : -1;
-      p.currentState = playerData.currentState;
-    });
-
-    io.on('s_changedDir', function (playerData) {
-      var p = players[playerData.id];
-      p.facingDirection.x = (playerData.facingRight) ? 1 : -1;
-    });
-
-    io.on('s_rest', function (id) {
-      var p = players[id];
-      p.currentState = 0;
-    });
-
-    io.on('s_leave', function (id) {
-      console.log(`${id} left :(`);
-      // todo: remove
-      delete players[id];
-    });
-
-    io.on('s_hello', function (packet) {
-      console.log(packet);
-
-      // var map = packet.map;
-
-      // map.sprites.forEach(function (sData) {
-      //   var img = Loader.loadImage(sData.url);
-      //   var sprite = new Sprite(img, sData.x, sData.y, sData.offset);
-      //   sprites.push(sprite);
-      // });
-
-      // map.mobs.forEach(function (mData) {
-      //   var mob;
-      //   switch (mData.type) {
-      //     case 'peach':
-      //       mob = new MobPeach(mData.x, mData.y);
-      //       break;
-      //   }
-      //   mob.hp = mData.hp;
-      //   mob.maxHP = mData.maxHP;
-      //   mobs[mData.id] = mob;
-      // });
-
-      var players = packet.players;
-      for (var key of Object.keys(players)) {
-        var playerData = players[key];
-
-        addDebil(playerData.pos.x, playerData.pos.y, playerData.className, playerData.name, playerData.id);
-      }
-
-      // var me = packet.me;
-      // player.hp    = me.hp;
-      // player.maxHP = me.maxHP;
-      // player.x     = me.x;
-      // player.y     = me.y;
-    });
-  }
-
   function addDebil(x, y, className, name, id) {
     var debil = new FakePlayer(
       x,
@@ -136,8 +53,6 @@ var GameState = (function () {
     init(args) {
       player = new Player(50, 50, (Math.random() > 0.5) ? "swordsman" : "archer", args.username);
       console.log(player.name);
-
-      connect();
 
       gui = new GUI(player);
 
