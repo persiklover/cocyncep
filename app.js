@@ -8,11 +8,6 @@ var app = express();
 
 app.use(express.static(__dirname + '/public'));
 
-// To delete?
-app.get('/', function (req, res) {
-  console.log('Connected ' + req.ip);
-});
-
 var server = app.listen(80, function () {
   console.log('Server is running...');
 });
@@ -22,105 +17,12 @@ var players  = [];
 var mobs = [];
 var spells = [];
 
-function init() {
-
-}
-
 function run() {
-  var startTime = Date.now();
-  // Main loop
-  var loop = function () {
-    // Mobs
-    for (var mob of mobs) {
-      if (!mob) { continue; }
-      mob.update();
+  setInterval(function() {
 
-      var stuck = false;
-      if (mob.pos.x <= 0) {
-        mob.pos.x = 0;
-        stuck = true;
-      }
-      else if (mob.pos.x >= map.general.w) {
-        mob.pos.x = map.general.w;
-        stuck = true;
-      }
-      
-      if (mob.pos.y <= 0) {
-        mob.pos.y = 0;
-        stuck = true;
-      }
-      else if (mob.pos.y >= map.general.h) {
-        mob.pos.y = map.general.h;
-        stuck = true;
-      }
-
-      if (stuck && mob.dest) {
-        mob.changeDestination();
-      }
-
-      // todo: check mob collision with arrow
-      // ...
-
-    }
-
-    // Spells
-    for (var spell of spells) {
-      if (!spell) { continue; }
-      spell.update();
-
-      // check out of bounds
-      if (spell.pos.x <= 0 ||
-          spell.pos.x >= map.general.w) {
-        io.emit('spell_delete', {
-          id: spell.id
-        });
-        delete spells[spell.id];
-        continue;
-      }
-      
-      for (var mob of mobs) {
-        if (!mob) { continue; }
-
-        if (mob.pos.distance(spell.pos) <= 20) {
-          
-          damageMob(mob, spell.damage, spell.initiatorID);
-          
-          io.emit('spell_delete', {
-            id: spell.id
-          });
-          delete spells[spell.id];
-          break;
-        }
-      }
-    }
-
-    if (Date.now() - startTime > 40) {
-      startTime = Date.now();
-      // Send mobs data
-      var mobsFiltered = mobs.filter(m => m != null && m.moved);
-      for (var mob of mobsFiltered) {
-        io.emit('mob_move', {
-          id:           mob.id,
-          x:            mob.pos.x,
-          y:            mob.pos.y,
-          facingRight:  mob.facingRight
-        });
-      }
-      // Send spells data
-      for (var spell of spells.filter(el => el != null)) {
-        io.emit('spell_update', {
-          id:          spell.id,
-          x:           spell.pos.x,
-          y:           spell.pos.y,
-          facingRight: spell.facingRight
-        });
-      }
-    }
-  };
-  setInterval(loop, 16);
+  }, 16);
 }
 
-init();
 run();
 
 function getAllUsers() {
@@ -160,9 +62,6 @@ function packMap() {
 var io = require('socket.io')(server);
 io.on('connection', function (socket) {
   var id = socket.id;
-  if (players[id]) {
-    console.log('what the fuck?');
-  }
 
   socket.on('disconnect', function () {
     var user = players[id];
@@ -171,13 +70,19 @@ io.on('connection', function (socket) {
     }
 
     user._disconnected = true;
-    socket.broadcast.emit('s_leave', id);
+    socket.broadcast.emit('_leave', id);
     delete players[id];
 
-    console.log(id + ' left :(');
+    console.log(id + ' left');
   });
 
-  // new player connected
+  socket.on('c_nameValidation', function(name = "") {
+    console.log(name);
+    socket.emit('s_nameValidation', 'loh');
+  });
+
+
+
   socket.on('c_enter', function(playerData) {
     // remove later
     console.log(`${playerData.name}#${id} joined (online: ${(Object.keys(players).length + 1)})`);
@@ -218,22 +123,6 @@ io.on('connection', function (socket) {
     players[id] = player;
   });
 
-  socket.on('c_changedDir', function() {
-    if (!players[id]) {
-      return;
-    }
-
-    // update his data in `players`
-    var p = players[id];
-    p.facingRight = !p.facingRight;
-    // Send everyone else his data
-    var packet = {
-      id:          id,
-      facingRight: p.facingRight
-    };
-    socket.broadcast.emit('s_changedDir', packet);
-  });
-
   socket.on('c_update', function (packet) {
     if (!players[id]) {
       return;
@@ -250,7 +139,7 @@ io.on('connection', function (socket) {
     socket.broadcast.emit('s_update', packet);
   });
 
-  socket.on('c_rest', function () {
+  socket.on('rest', function () {
     if (!players[id]) {
       return;
     }
@@ -258,7 +147,7 @@ io.on('connection', function (socket) {
     var p = players[id];
     p.currentState = 'IDLE';
     // Send everyone else his data
-    socket.broadcast.emit('s_rest', id);
+    socket.broadcast.emit('rest', id);
   });
 
   socket.on('attack', function (user) {
