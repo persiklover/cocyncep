@@ -78,10 +78,18 @@ io.on('connection', function (socket) {
 
   socket.on('c_nameValidation', function(name = "") {
     console.log(name);
-    socket.emit('s_nameValidation', 'loh');
+
+    var error = "";
+
+    if (name.length < 2) {
+      error = "Use more letters, please"; 
+    }
+    else if (name.length > 15) {
+      error = 'Are you loh? Your name is too long';
+    }
+   
+    socket.emit('s_nameValidation', error);
   });
-
-
 
   socket.on('c_enter', function(playerData) {
     // remove later
