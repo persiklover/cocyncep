@@ -7,6 +7,11 @@ var AnimatedObject = (function() {
       this.anim = anim;
     }
 
+    setAnimation(i) {
+      this.anim.setIndex(i);
+      return this;
+    }
+
     update() {
       this.anim.update();
     }

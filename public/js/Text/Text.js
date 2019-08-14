@@ -13,11 +13,15 @@ var TextRenderer = (function() {
     "0": { x: 52,  y: 17, w: 5, h: 7 },
 
     "?": { x: 0,   y: 9,   w: 5, h: 7 },
-    ":": { x: 82,  y: 10,  w: 1, h: 5, t: 1 },
+    "?": { x: 6,   y: 9,   w: 1, h: 7 },
+    ":": { x: 82,  y: 10,  w: 1, h: 5, t: 2 },
     "<": { x: 24,  y: 8,   w: 4, h: 8 },
     ">": { x: 29,  y: 8,   w: 4, h: 8 },
     "/": { x: 61,  y: 8,   w: 6, h: 8 },
     "_": { x: 84,  y: 15,  w: 5, h: 1, t: 7 },
+    "-": { x: 44,  y: 12,  w: 4, h: 1, t: 4 },
+    ".": { x: 77,  y: 15,  w: 1, h: 1, t: 6 },
+    ",": { x: 79,  y: 14,  w: 2, h: 2, t: 5 },
 
     "a": { x: 0,   y: 1,  w: 5, h: 6, t: 1 },
     "b": { x: 6,   y: 0,  w: 5, h: 7 },
@@ -47,7 +51,10 @@ var TextRenderer = (function() {
     "z": { x: 141, y: 1,  w: 5, h: 6, t: 1 }
   };
 
-  var fontImg = Loader.loadImage('img/font.png');
+  var fontImg = Loader.loadImage('img/font.png', () => {
+    console.warn("loaded");
+    fontImg.ready = true;
+  });
 
   function calculateWidth(data = "", settings = {}) {
     var width = 0;
@@ -81,31 +88,40 @@ var TextRenderer = (function() {
   }
 
   return {
-    render(ctx, data = "", x = 0, y = 0, settings = {}) {
+    render(ctx = new CanvasRenderingContext2D, data = "", x = 0, y = 0, settings = {}) {
+      if (!fontImg.ready) {
+        console.log("exiting");
+        return;
+      }
+
       settings.fontSize      = settings.fontSize      || 11;
       settings.letterSpacing = settings.letterSpacing || 1.2;
       settings.wordSpacing   = settings.wordSpacing   || 4;
       settings.textAlign     = settings.textAlign     || "center";
       settings.textBaseline  = settings.textBaseline  || "center";
       settings.scale         = settings.scale         || settings.fontSize / 11;
+      settings.opacity       = settings.opacity       || 1;
+      settings.color         = settings.color         || "rgb(0,0,0)";
 
-      var width = calculateWidth(data, settings);
+      var width  = calculateWidth(data, settings);
       var height = calculateHeight(data, settings);
 
       var nextX = 0;
 
-      ctx.save();
-      ctx.translate(x, y);
-      if (settings.textAlign == 'center') {
-        ctx.translate(- (width * settings.scale) / 2, 0);
-      }
-      if (settings.textBaseline == 'center') {
-        ctx.translate(0, - (height * settings.scale) / 2);
-      }
-      ctx.scale(settings.scale, settings.scale);
+      ctx2.save();
 
-      // ctx.strokeStyle = 'orange';
-      // ctx.strokeRect(nextX, y, width, 8);
+      ctx2.translate(x, y);
+      if (settings.textAlign == 'center') {
+        ctx2.translate(- (width * settings.scale) / 2, 0);
+      }
+
+      if (settings.textBaseline == 'top') {
+
+      }
+      else if (settings.textBaseline == 'center') {
+        ctx2.translate(0, - (height * settings.scale) / 2);
+      }
+      ctx2.scale(settings.scale, settings.scale);
 
       for (var char of data) {
         if (char == " ") {
@@ -117,7 +133,7 @@ var TextRenderer = (function() {
             charData = letters["?"];
           }
 
-          ctx.drawImage(
+          ctx2.drawImage(
             fontImg,
             charData.x,
             charData.y,
@@ -128,11 +144,47 @@ var TextRenderer = (function() {
             charData.w,
             charData.h
           );
-          nextX += (charData.w + settings.letterSpacing);
+          nextX += (charData.w + settings.letterSpacing); 
         }
       }
+      
+      if (settings.color) {
+        var colorData = parseColor(settings.color);
 
-      ctx.restore();
+        var dx = x - (width / 2)  * scale * settings.scale;
+        var dy = y - (height / 2) * scale * settings.scale;
+        var dw = width  * scale * settings.scale + 1;
+        var dh = height * scale * settings.scale + 1;
+
+        // var dy = (function() {
+        //   switch(settings.textBaseline) {
+        //     case "top":
+        //       return y * scale * settings.scale;
+        //     case "center": 
+        //       return y * scale - (height / 2) * scale * settings.scale;
+        //   }
+        // })();
+
+        var imageData = ctx2.getImageData(
+          dx,
+          dy,
+          dw,
+          dh
+        );
+        var pixels = imageData.data;
+
+        for (var i = 0; i < pixels.length; i += 4) {
+          if (pixels[i+3] != 0) {
+            pixels[i]   = colorData[0]; //red
+            pixels[i+1] = colorData[1]; //green
+            pixels[i+2] = colorData[2]; //blue
+          }
+        }
+        ctx2.putImageData(imageData, dx, dy);
+      }
+      ctx2.restore();
+      
+      ctx.drawImage(canvas2, 0, 0);
     }
   };
 })();

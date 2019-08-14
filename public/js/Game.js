@@ -3,6 +3,8 @@ const WIDTH  = HEIGHT * (16 / 9);
 
 var canvas;
 var ctx;
+var canvas2;
+var ctx2;
 var scale = 1;
 
 var animationList = {
@@ -18,7 +20,7 @@ var animationList = {
     Loader.loadImage(`img/swordsman.png`),
     [2, 2, 2],       // imagesNum
     [600, 120, 70],  // delays
-    [23, 33],        // sizes
+    [24, 33],        // sizes
     { x: 11, y: 33 }
   )
 };
@@ -37,7 +39,12 @@ var Game = (function() {
     canvas = document.querySelector('#canvas');
     canvas.width  = WIDTH;
     canvas.height = HEIGHT;
-    ctx = canvas.getContext('2d', { alpha: false });
+    ctx = canvas.getContext('2d');
+    
+    canvas2 = document.querySelector('#canvas2');
+    canvas2.width  = WIDTH;
+    canvas2.height = HEIGHT;
+    ctx2 = canvas2.getContext('2d');
   }
 
   function bindEvents() {
@@ -78,7 +85,8 @@ var Game = (function() {
   }
   
   function render() {
-    ctx.clearRect(0, 0, WIDTH, HEIGHT);
+    ctx.clearRect(0, 0, WIDTH * scale, HEIGHT * scale);
+    ctx2.clearRect(0, 0, WIDTH * scale, HEIGHT * scale);
 
     gsm.render(ctx);
   }
@@ -92,12 +100,14 @@ var Game = (function() {
       scale = window.innerWidth / WIDTH;
     }
 
-    canvas.width  = WIDTH  * scale;
-    canvas.height = HEIGHT * scale;
+    canvas.width  = canvas2.width  = WIDTH  * scale;
+    canvas.height = canvas2.height = HEIGHT * scale;
 
     ctx.imageSmoothingEnabled = false;
+    ctx2.imageSmoothingEnabled = false;
     for (var prefix of ['moz', 'o', 'webkit', 'ms']) {
       ctx[prefix + 'ImageSmoothingEnabled'] = false;
+      ctx2[prefix + 'ImageSmoothingEnabled'] = false;
     }
   }
 

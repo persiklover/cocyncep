@@ -105,3 +105,13 @@ function require(url, onload = function() {}) {
   script.onload = onload;
   document.body.appendChild(script);
 };
+
+function parseColor(hex) {
+  hex = hex.slice(1).toLowerCase();
+
+  var r = parseInt("0x" + hex[0] + hex[1]);
+  var g = parseInt("0x" + hex[2] + hex[3]);
+  var b = parseInt("0x" + hex[4] + hex[5]);
+  
+  return [r, g, b];
+}

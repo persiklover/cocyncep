@@ -171,10 +171,10 @@ io.on('connection', function (socket) {
     }
 
     user._disconnected = true;
-    socket.broadcast.emit('_leave', id);
+    socket.broadcast.emit('s_leave', id);
     delete players[id];
 
-    console.log(id + ' left');
+    console.log(id + ' left :(');
   });
 
   // new player connected
@@ -218,6 +218,22 @@ io.on('connection', function (socket) {
     players[id] = player;
   });
 
+  socket.on('c_changedDir', function() {
+    if (!players[id]) {
+      return;
+    }
+
+    // update his data in `players`
+    var p = players[id];
+    p.facingRight = !p.facingRight;
+    // Send everyone else his data
+    var packet = {
+      id:          id,
+      facingRight: p.facingRight
+    };
+    socket.broadcast.emit('s_changedDir', packet);
+  });
+
   socket.on('c_update', function (packet) {
     if (!players[id]) {
       return;
@@ -234,7 +250,7 @@ io.on('connection', function (socket) {
     socket.broadcast.emit('s_update', packet);
   });
 
-  socket.on('rest', function () {
+  socket.on('c_rest', function () {
     if (!players[id]) {
       return;
     }
@@ -242,7 +258,7 @@ io.on('connection', function (socket) {
     var p = players[id];
     p.currentState = 'IDLE';
     // Send everyone else his data
-    socket.broadcast.emit('rest', id);
+    socket.broadcast.emit('s_rest', id);
   });
 
   socket.on('attack', function (user) {

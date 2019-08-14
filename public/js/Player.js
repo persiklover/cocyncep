@@ -37,21 +37,21 @@ var Player = (function() {
       this.anim.facingRight = this.facingDirection.x > 0;
       this.anim.update();
 
-      // if (this.dx || this.dy) {
-      //   var delta = new Vec2(this.dx, this.dy)
-      //     .add(this.facingDirection.scale(.35));
+      if (this.dx || this.dy) {
+        var delta = new Vec2(this.dx, this.dy)
+          .add(this.facingDirection.scale(.35));
   
-      //   if (this.dx != 0) {
-      //     this.x += delta.x;
-      //   }
+        if (this.dx != 0) {
+          this.x += delta.x;
+        }
 
-      //   if (this.dy != 0) {
+        if (this.dy != 0) {
 
-      //     this.y += delta.y;
-      //   }
-      // }
+          this.y += delta.y;
+        }
+      }
 
-      super.update();
+      // super.update();
     }
 
     get facingRight() { return this.facingDirection.x > 0; }

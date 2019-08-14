@@ -1,13 +1,21 @@
 var MenuState = (function() {
 
   var currentChoice = 0;
-  var name = "___";
+  var name = "";
   var classNames = [
     "archer",
     "swordsman"
   ];
+  var error = "name is too short";
+
+  var colors = [
+    "rgb(10, 160, 90)",
+    "rgb(255, 10, 60)",
+  ]
 
   var animations = [];
+
+  var bgTexture = Loader.loadImage("img/map.png");
 
   function isValid(username) {
     return username.length >= 3;
@@ -19,10 +27,10 @@ var MenuState = (function() {
     }
 
     init() {
-      this.gsm.setState(this.gsm.GAMESTATE, {
-        name:      "admin",
-        className: classNames[currentChoice]
-      });
+      // this.gsm.setState(this.gsm.GAMESTATE, {
+      //   name:      "admin",
+      //   className: classNames[currentChoice]
+      // });
 
       animations = [
         animationList.archer,
@@ -38,29 +46,48 @@ var MenuState = (function() {
       }
     }
 
-    render(ctx) {
+    render(ctx = new CanvasRenderingContext2D) {
       ctx.fillStyle = 'white';
       ctx.fillRect(0, 0, WIDTH * scale, HEIGHT * scale);
-
-      // Static bg
-      // ...
       
       ctx.save();
       ctx.scale(scale, scale);
-      // ctx.translate(-camera.x, -camera.y);
 
       var cx = WIDTH / 2;
       var cy = HEIGHT / 2;
 
-      TextRenderer.render(ctx, classNames[currentChoice], cx, cy + 15);
+      // Proffesstion
+      TextRenderer.render(ctx, `profession:`, cx, cy + 8, {
+        scale: .75,
+        opacity: .6
+      });
+      TextRenderer.render(ctx, `${classNames[currentChoice]}`, cx, cy + 17, {
+        scale: 1.5,
+        color: colors[currentChoice]
+      });
       
       // Render selected character
       if (animations[currentChoice]) {
         animations[currentChoice].render(ctx, cx, cy);
       }
+
+      // 
+      TextRenderer.render(ctx, `enter your name:`, cx, cy + 40, {
+        scale: .75,
+        opacity: .6
+      });
       
       // Render name
-      TextRenderer.render(ctx, name, cx, cy + 45);
+      TextRenderer.render(ctx, name, cx, cy + 45, {
+        textBaseline: "top"
+      });
+      
+      if (error) {
+        TextRenderer.render(ctx, error, cx, cy + 55, {
+          textBaseline: "top",
+          color: "rgb(255, 0, 0)"
+        });
+      }
 
       ctx.restore();
     }
@@ -118,7 +145,6 @@ var MenuState = (function() {
             name = "";
           }
           name += key.key;
-          console.log(key);
       }
     }
 

@@ -36,6 +36,9 @@ var GameState = (function () {
 
   function connect() {
     io = io();
+    io.on('connect_error', function(err) {
+      gui.log("failed to connect!");
+    });
 
     // c_ -> sent from client
     // s_ -> sent from server
@@ -49,14 +52,10 @@ var GameState = (function () {
     });
 
     io.on('s_enter', function (playerData) {
-      console.log(`Someone just entered! Here's his data:`);
-      console.log(playerData);
-
       addDebil(playerData.x, playerData.y, playerData.className, playerData.name, playerData.id);
     });
 
     io.on('s_update', function (playerData) {
-      
       var p = players[playerData.id];
       p.x            = playerData.x;
       p.y            = playerData.y;
@@ -64,9 +63,20 @@ var GameState = (function () {
       p.currentState = playerData.currentState;
     });
 
-    io.on('_leave', function (id) {
+    io.on('s_changedDir', function (playerData) {
+      var p = players[playerData.id];
+      p.facingDirection.x = (playerData.facingRight) ? 1 : -1;
+    });
+
+    io.on('s_rest', function (id) {
+      var p = players[id];
+      p.currentState = 0;
+    });
+
+    io.on('s_leave', function (id) {
+      console.log(`${id} left :(`);
       // todo: remove
-      players[id] = null;
+      delete players[id];
     });
 
     io.on('s_hello', function (packet) {
@@ -108,8 +118,6 @@ var GameState = (function () {
   }
 
   function addDebil(x, y, className, name, id) {
-    console.log(arguments);
-
     var debil = new FakePlayer(
       x,
       y,
@@ -126,7 +134,8 @@ var GameState = (function () {
     }
 
     init(args) {
-      player = new Player(0, 0, args.className, args.name);
+      player = new Player(50, 50, (Math.random() > 0.5) ? "swordsman" : "archer", args.username);
+      console.log(player.name);
 
       connect();
 
@@ -134,6 +143,18 @@ var GameState = (function () {
 
       // Sprites
       floor = new Sprite(Loader.loadImage('img/map.png'), 0, 0);
+
+      // Sprites
+      sprites.push(new Sprite(Loader.loadImage('img/seashell-1.png'), 15, 40,   { x: 6, y: 9 }));
+      sprites.push(new Sprite(Loader.loadImage('img/seashell-1.png'), 220, 120, { x: 6, y: 9 }));
+
+      mobs.push(new AnimatedObject(250, 100, new Animation(
+        Loader.loadImage(`img/crab.png`),
+        [2, 2],      // imagesNum
+        [3500, 120],  // delays
+        [31, 13],    // sizes
+        { x: 15, y: 13 }
+      )).setAnimation(1));
 
       setInterval(function() {
         if (_moved) {
@@ -146,7 +167,7 @@ var GameState = (function () {
         }
         if (_stoppedMoving) {
           _stoppedMoving = false;
-          io.emit('rest', null);
+          io.emit('c_rest', null);
         }
       }, 40);
     }
@@ -189,22 +210,40 @@ var GameState = (function () {
     }
 
     update() {
+      var facingDirectionBefore = player.facingDirection;
       player.facingDirection = new Vec2(mouse.x, mouse.y)
         .sub(new Vec2(player.x, player.y))
         .normalize();
       player.update();
 
+      if ((facingDirectionBefore.x > 0 && player.facingDirection.x < 0) ||
+          (facingDirectionBefore.x < 0 && player.facingDirection.x > 0)) {
+        io.emit('c_changedDir');
+      }
+
       camera.x = player.x - WIDTH / 2;
       camera.y = player.y - HEIGHT / 2;
+
+      if (camera.x < 0) {
+        camera.x = 0;
+      }
+      if (camera.y < 0) {
+        camera.y = 0;
+      }
 
       for (var key of Object.keys(players)) {
         var p = players[key];
         p.update(ctx);
-        console.log(p.facingDirection.x);
       }
+
+      for (var mob of mobs) {
+        mob.update();
+      }
+
+      gui.update();
     }
 
-    render(ctx) {
+    render(ctx = new CanvasRenderingContext2D) {
       ctx.fillStyle = 'white';
       ctx.fillRect(0, 0, WIDTH * scale, HEIGHT * scale);
 
@@ -213,72 +252,59 @@ var GameState = (function () {
       ctx.scale(camera.zoom, camera.zoom);
       ctx.translate(-camera.x, -camera.y);
 
-      // Render floor
-      ctx.save();
-      ctx.globalAlpha = .7;
-      const TILE_SIZE = 64;
-      var letters = "abcdefgh";
-      var rows = letters.length;
-      var r = 150;
-      var g = 10;
-      var b = 90;
-      for (var i = 0; i < letters.length; i++) {
-        for (var j = 0; j < rows; j++) {
-          r += 40;
-          g += 20;
-          b += 100;
-          if (r > 255) { r = 0; }
-          if (g > 255) { g = 0; }
-          if (b > 255) { b = 0; }
-
-          var x = i * TILE_SIZE;
-          var y = j * TILE_SIZE;
-          ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-          ctx.fillRect(x - .5, y - .5, TILE_SIZE, TILE_SIZE);
-
-          TextRenderer.render(ctx, `${letters[i]}${j}`, x + TILE_SIZE / 2, y + TILE_SIZE / 2, {
-            scale: 3.5
-          });
-        }
-      }
-      ctx.restore();
+      floor.render(ctx);
 
       // Show direction
-      ctx.save();
-      ctx.translate(
-        player.x,
-        player.y
-      );
-      var angle = new Vec2(player.x, player.y)
-        .sub(new Vec2(mouse.x, mouse.y))
-        .direction() + 90;
-      ctx.rotate(Math.toRadian(angle));
-      ctx.globalAlpha = .75;
-      ctx.drawImage(cursorImg, - cursorImg.width / 2, - 8);
-      ctx.restore();
+      // ctx.save();
+      // ctx.translate(
+      //   player.x,
+      //   player.y
+      // );
+      // var angle = new Vec2(player.x, player.y)
+      //   .sub(new Vec2(mouse.x, mouse.y))
+      //   .direction() + 90;
+      // ctx.rotate(Math.toRadian(angle));
+      // ctx.globalAlpha = .75;
+      // ctx.drawImage(cursorImg, - cursorImg.width / 2, - 8);
+      // ctx.restore();
 
-      player.render(ctx);
-
+      var toDraw = []
+        .concat(sprites)
+        .concat(mobs)
+        .concat(player);
+      
       for (var key of Object.keys(players)) {
         var p = players[key];
-        p.render(ctx);
+        toDraw.push(p);
       }
 
       // sorting
-      // toDraw.sort((l, r) => l.y - r.y);
+      toDraw.sort((l, r) => l.y - r.y);
+      // console.log(toDraw);
 
-      // for (var i = 0; i < toDraw.length; i++) {
-        // toDraw[i].render(ctx);
-      // }
+      for (var i = 0; i < toDraw.length; i++) {
+        toDraw[i].render(ctx);
+      }
+
+      TextRenderer.render(
+        ctx,
+        player.name,
+        player.x,
+        player.y - player.anim.height - 5,
+        {
+          color: "#FFAAEE"
+        }
+      );
 
       ctx.restore();
       
       // GUI
       ctx.save();
+
       ctx.scale(scale, scale);
       
-      gui.render(ctx);
-
+      // gui.render(ctx);
+      
       ctx.restore();
     }
 
