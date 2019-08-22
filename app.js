@@ -70,7 +70,7 @@ io.on('connection', function (socket) {
     }
 
     user._disconnected = true;
-    socket.broadcast.emit('_leave', id);
+    socket.broadcast.emit('s_leave', id);
     delete players[id];
 
     console.log(id + ' left');
