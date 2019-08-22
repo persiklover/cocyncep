@@ -27,20 +27,29 @@ var MenuState = (function() {
     }
 
     init() {
-      this.gsm.setState(this.gsm.GAMESTATE, {
-        username: "admin",
-        // className: classNames[currentChoice]
-        className: classNames[0]
-      });
+      // this.gsm.setState(this.gsm.GAMESTATE, {
+      //   username: "admin",
+      //   // className: classNames[currentChoice]
+      //   className: classNames[0]
+      // });
 
       animations = [
         animationList.archer,
         animationList.swordsman
       ];
 
-      io.on("s_nameValidation", function(err = "") {
+      io.on("s_nameValidation", (err = "") => {
         error = err.toLowerCase();
-        console.error(error);
+        
+        if (error.length == 0) {
+          this.gsm.setState(this.gsm.GAMESTATE, {
+            username:  name,
+            className: classNames[currentChoice]
+          });
+        }
+        else {
+          console.error(`Error: ${error}`);
+        }
       });
     }
 
