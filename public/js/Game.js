@@ -12,8 +12,8 @@ var io;
 var animationList = {
   "archer": new Animation(
     Loader.loadImage(`img/archer.png`),
-    [2, 2, 2],       // imagesNum
-    [600, 120, 70],  // delays
+    [2, 2, 2, 2],       // imagesNum
+    [600, 120, 70, 150],  // delays
     [25, 38],        // sizes
     { x: 11, y: 38 }
   ),
@@ -101,7 +101,7 @@ var Game = (function() {
     ctx = canvas.getContext('2d');
     
     canvas2 = document.querySelector('#canvas2');
-    canvas2.width  = WIDTH;
+    canvas2.width  = WIDTH ;
     canvas2.height = HEIGHT;
     ctx2 = canvas2.getContext('2d');
   }

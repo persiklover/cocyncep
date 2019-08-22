@@ -6,7 +6,7 @@ var MenuState = (function() {
     "archer",
     "swordsman"
   ];
-  var error = "name is too short";
+  var error = "";
 
   var colors = [
     "rgb(10, 160, 90)",
@@ -27,15 +27,21 @@ var MenuState = (function() {
     }
 
     init() {
-      // this.gsm.setState(this.gsm.GAMESTATE, {
-      //   name:      "admin",
-      //   className: classNames[currentChoice]
-      // });
+      this.gsm.setState(this.gsm.GAMESTATE, {
+        username: "admin",
+        // className: classNames[currentChoice]
+        className: classNames[0]
+      });
 
       animations = [
         animationList.archer,
         animationList.swordsman
       ];
+
+      io.on("s_nameValidation", function(err = "") {
+        error = err.toLowerCase();
+        console.error(error);
+      });
     }
 
     handleInput() {}
@@ -85,7 +91,7 @@ var MenuState = (function() {
       if (error) {
         TextRenderer.render(ctx, error, cx, cy + 55, {
           textBaseline: "top",
-          color: "rgb(255, 0, 0)"
+          color: "#FF0000"
         });
       }
 

@@ -7,8 +7,10 @@ var Player = (function() {
       this.className = className;
       this.anim = animationList[className].clone();
       this.states = {
-        IDLE: 0,
-        RUN:  1
+        IDLE:   0,
+        RUN:    1,
+        ATTACK: 2,
+        WALK:   3
       };
       this.currentState = this.states.IDLE;
       
@@ -18,27 +20,9 @@ var Player = (function() {
     }
 
     update() {
-      switch (this.currentState) {
-        case this.states.IDLE: {
-          if (this.dx || this.dy) {
-            this.currentState = this.states.RUN;
-          }
-          break;
-        }
-        case this.states.RUN: {
-          if (this.dx == 0 && this.dy == 0) {
-            this.currentState = this.states.IDLE;
-          }
-          break;
-        }
-      }
-
-      this.anim.setIndex(this.currentState);
-      this.anim.facingRight = this.facingDirection.x > 0;
-      this.anim.update();
-
+      var delta = new Vec2();
       if (this.dx || this.dy) {
-        var delta = new Vec2(this.dx, this.dy)
+        delta = new Vec2(this.dx, this.dy)
           .add(this.facingDirection.scale(.35));
   
         if (this.dx != 0) {
@@ -51,7 +35,39 @@ var Player = (function() {
         }
       }
 
-      // super.update();
+      switch (this.currentState) {
+        case this.states.IDLE: {
+          if (this.dx || this.dy) {
+            this.currentState = this.states.RUN;
+          }
+          break;
+        }
+        case this.states.RUN: {
+          // if (delta.x < 0 || delta.y < 0) {
+          //   this.currentState = this.states.WALK;
+          // }
+          if (this.dx == 0 && this.dy == 0) {
+            this.currentState = this.states.IDLE;
+          }
+          break;
+        }
+        case this.states.WALK: {
+          if (this.dx == 0 && this.dy == 0) {
+            this.currentState = this.states.IDLE;
+          }
+          else if (delta.x >= 0 && delta.y >= 0) {
+            this.currentState = this.states.RUN;
+          }
+          break;
+        }
+      }
+
+      // Show current state
+      // console.log(Object.keys(this.states)[this.currentState]);
+
+      this.anim.setIndex(this.currentState);
+      this.anim.facingRight = this.facingDirection.x > 0;
+      this.anim.update();
     }
 
     get facingRight() { return this.facingDirection.x > 0; }

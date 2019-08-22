@@ -34,6 +34,9 @@ var GameState = (function () {
 
   var cursorImg = Loader.loadImage('img/cursor.png');
 
+  var inventoryTexture = Loader.loadImage('img/inventory.png');
+  var inventoryOpen = false;
+
   function addDebil(x, y, className, name, id) {
     var debil = new FakePlayer(
       x,
@@ -170,18 +173,18 @@ var GameState = (function () {
       floor.render(ctx);
 
       // Show direction
-      // ctx.save();
-      // ctx.translate(
-      //   player.x,
-      //   player.y
-      // );
-      // var angle = new Vec2(player.x, player.y)
-      //   .sub(new Vec2(mouse.x, mouse.y))
-      //   .direction() + 90;
-      // ctx.rotate(Math.toRadian(angle));
-      // ctx.globalAlpha = .75;
-      // ctx.drawImage(cursorImg, - cursorImg.width / 2, - 8);
-      // ctx.restore();
+      ctx.save();
+      ctx.translate(
+        player.x,
+        player.y
+      );
+      var angle = new Vec2(player.x, player.y)
+        .sub(new Vec2(mouse.x, mouse.y))
+        .direction() + 90;
+      ctx.rotate(Math.toRadian(angle));
+      ctx.globalAlpha = .75;
+      ctx.drawImage(cursorImg, - cursorImg.width / 2, - 8);
+      ctx.restore();
 
       var toDraw = []
         .concat(sprites)
@@ -207,7 +210,7 @@ var GameState = (function () {
         player.x,
         player.y - player.anim.height - 5,
         {
-          color: "#FFAAEE"
+          // color: "#000022"
         }
       );
 
@@ -217,6 +220,14 @@ var GameState = (function () {
       ctx.save();
 
       ctx.scale(scale, scale);
+
+      if (inventoryOpen) {
+        ctx.drawImage(
+          inventoryTexture,
+          WIDTH / 2 - inventoryTexture.width / 2,
+          HEIGHT / 2 - inventoryTexture.height / 2
+        );
+      }
       
       // gui.render(ctx);
       
@@ -226,6 +237,10 @@ var GameState = (function () {
     keyDown(key) {
       var keyCode = key.keyCode;
       Keyboard.keyDown(keyCode);
+
+      if (keyCode == Keyboard.E) {
+        inventoryOpen = !inventoryOpen;
+      }
     }
     
     keyUp(key) {
