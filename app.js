@@ -25,7 +25,7 @@ function run() {
 
 run();
 
-function getAllUsers() {
+function getAllPlayers() {
   var obj = [];
   for (var key of Object.keys(players)) {
     obj.push(players[key]);
@@ -35,7 +35,7 @@ function getAllUsers() {
 
 function packUsers() {
   var packet = {};
-  for (var user of getAllUsers()) {
+  for (var user of getAllPlayers()) {
     packet = Object.assign(packet, { user });
   }
   return packet;
@@ -79,7 +79,8 @@ io.on('connection', function (socket) {
   socket.on('c_nameValidation', function(name = "") {
     var error = "";
 
-    for (var player of players) {
+    for (var player of getAllPlayers()) {
+      console.log(player);
       if (name == player.name) {
         error = "Name already exists!";
         socket.emit('s_nameValidation', error);
@@ -131,7 +132,7 @@ io.on('connection', function (socket) {
       //   x:     player.pos.x,
       //   y:     player.pos.y
       // },
-      players: getAllUsers()
+      players: getAllPlayers()
       // map:   packMap(),
     });
     // store his data in `players`
