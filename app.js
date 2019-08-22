@@ -94,7 +94,6 @@ io.on('connection', function (socket) {
     var error = "";
 
     for (var player of getAllPlayers()) {
-      console.log(player);
       if (name == player.name) {
         error = "Name already exists!";
         socket.emit('s_nameValidation', error);
@@ -170,7 +169,7 @@ io.on('connection', function (socket) {
     socket.broadcast.emit('s_update', packet);
   });
 
-  socket.on('rest', function () {
+  socket.on('c_rest', function () {
     if (!players[id]) {
       return;
     }
@@ -178,7 +177,7 @@ io.on('connection', function (socket) {
     var p = players[id];
     p.currentState = 'IDLE';
     // Send everyone else his data
-    socket.broadcast.emit('rest', id);
+    socket.broadcast.emit('s_rest', id);
   });
 
   socket.on('attack', function (user) {
