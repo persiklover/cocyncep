@@ -76,6 +76,20 @@ io.on('connection', function (socket) {
     console.log(id + ' left');
   });
 
+  socket.on('c_changeDir', function() {
+    var user = players[id];
+    if (!user) {
+      return;
+    }
+
+    user.facingRight = !user.facingRight;
+    socket.broadcast.emit('s_changeDir', {
+      id: id,
+      facingRight: user.facingRight
+    });
+
+  });
+
   socket.on('c_nameValidation', function(name = "") {
     var error = "";
 
