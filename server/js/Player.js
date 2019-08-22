@@ -1,35 +1,18 @@
 var Player = (function() {
   
-  return class Player {
-    constructor(id, name, className, pos) {
+  return class {
+    constructor(id = "", name = "", className = "", pos = new Vec2) {
       this.id        = id;
       this.name      = name;
       this.className = className;
       this.pos       = pos;
 
-      // Stats
-      // this.stats = new Stats();
-      this.hp = 10;
-      this.def = 5;
-      
-      switch (className) {
-        case 'swordsman':
-          this.hp = 16;
-          this.def = 15;
-          break;
-          case 'archer':
-          this.hp = 10;
-          break;
-      }
-
-      this.maxHP = this.hp;
-
       this.lvl = 1;
-      this.xp = 0;
+      this.xp  = 0;
       this.xpRequired = 10;
     }
 
-    dealDamage(damage) {
+    dealDamage(damage = 0) {
       damage -= (damage / 100 * this.def);
       this.hp -= damage;
       if (this.hp < 0) {

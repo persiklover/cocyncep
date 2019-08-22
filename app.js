@@ -13,7 +13,7 @@ var server = app.listen(80, function () {
 });
 
 
-var players  = [];
+var players = [];
 var mobs = [];
 var spells = [];
 
@@ -77,10 +77,18 @@ io.on('connection', function (socket) {
   });
 
   socket.on('c_nameValidation', function(name = "") {
-    console.log(name);
-
     var error = "";
 
+    for (var player of players) {
+      if (name == player.name) {
+        error = "Name already exists!";
+        socket.emit('s_nameValidation', error);
+        return;
+      }
+    }
+
+    name = name.trim();
+    
     if (name.length < 2) {
       error = "Use more letters, please"; 
     }
