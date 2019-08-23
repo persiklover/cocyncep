@@ -17,6 +17,8 @@ var Player = (function() {
       this.name = name;
 
       this.facingDirection = new Vec2(1, 0);
+
+      this.unlockedSkills = 1;
     }
 
     update() {
@@ -25,13 +27,14 @@ var Player = (function() {
         delta = new Vec2(this.dx, this.dy)
           .add(this.facingDirection.scale(.35));
   
-        if (this.dx != 0) {
-          this.x += delta.x;
-        }
-
-        if (this.dy != 0) {
-
-          this.y += delta.y;
+        if (!this.rooted) {
+          if (this.dx != 0) {
+            this.x += delta.x;
+          }
+  
+          if (this.dy != 0) {
+            this.y += delta.y;
+          }
         }
       }
 
@@ -74,6 +77,17 @@ var Player = (function() {
 
     render(ctx) {
       this.anim.render(ctx, this.x, this.y);
+
+
+      TextRenderer.render(
+        ctx,
+        this.name,
+        this.x,
+        this.y - this.anim.height - 8,
+        {
+          color: "#ee22aa"
+        }
+      );
     }
   };
 })();

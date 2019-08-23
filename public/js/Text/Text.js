@@ -51,10 +51,7 @@ var TextRenderer = (function() {
     "z": { x: 141, y: 1,  w: 5, h: 6, t: 1 }
   };
 
-  var fontImg = Loader.loadImage('img/font.png', () => {
-    console.warn("loaded");
-    fontImg.ready = true;
-  });
+  var fontTexture = Loader.loadImage('img/font.png');
 
   function calculateWidth(data = "", settings = {}) {
     var width = 0;
@@ -89,39 +86,56 @@ var TextRenderer = (function() {
 
   return {
     render(ctx = new CanvasRenderingContext2D, data = "", x = 0, y = 0, settings = {}) {
-      if (!fontImg.ready) {
-        console.log("exiting");
-        return;
-      }
-
       settings.fontSize      = settings.fontSize      || 11;
       settings.letterSpacing = settings.letterSpacing || 1.2;
       settings.wordSpacing   = settings.wordSpacing   || 4;
       settings.textAlign     = settings.textAlign     || "center";
       settings.textBaseline  = settings.textBaseline  || "center";
-      settings.scale         = settings.scale         || settings.fontSize / 11;
+      settings.scale         = settings.scale         || 1;
       settings.opacity       = settings.opacity       || 1;
-      settings.color         = settings.color         || "rgb(0,0,0)";
+      settings.color         = settings.color         || "";
 
       var width  = calculateWidth(data, settings);
       var height = calculateHeight(data, settings);
 
       var nextX = 0;
 
+      var scalar = 2;
+
+      ctx.save()
+      ctx.scale(1 / scalar, 1 / scalar);
+      ctx.translate(x * scalar, y * scalar);
+      ctx.scale(scalar, scalar);
+      ctx.scale(settings.scale, settings.scale);
+      
+      ctx2.clearRect(0, 0, WIDTH * scale, HEIGHT * scale);
       ctx2.save();
 
-      ctx2.translate(x, y);
-      if (settings.textAlign == 'center') {
-        ctx2.translate(- (width * settings.scale) / 2, 0);
+      switch (settings.textAlign) {
+        case "center":
+          ctx.translate(-width * (1 / scalar), 0);
+          break;
+        case "top":
+          // 
+          break;
       }
 
-      if (settings.textBaseline == 'top') {
+      switch (settings.textBaseline) {
+        case "center":
+          // ctx2.translate(0, -(height * settings.scale) / 2);
+          break;
+        case "top":
+          // 
+          break;
+      }
 
+      // render area
+      // ctx2.strokeStyle = "orange";
+      // ctx2.strokeRect(0, 0, width, height);
+
+      if (settings.opacity < 1) {
+        ctx2.globalAlpha = settings.opacity;
       }
-      else if (settings.textBaseline == 'center') {
-        ctx2.translate(0, - (height * settings.scale) / 2);
-      }
-      ctx2.scale(settings.scale, settings.scale);
 
       for (var char of data) {
         if (char == " ") {
@@ -134,36 +148,39 @@ var TextRenderer = (function() {
           }
 
           ctx2.drawImage(
-            fontImg,
+            fontTexture,
             charData.x,
             charData.y,
             charData.w,
             charData.h,
             (charData.l != null) ? nextX + charData.l : nextX,
-            (charData.t != null) ? 0 + charData.t : 0,
+            (charData.t != null) ? charData.t : 0,
             charData.w,
             charData.h
           );
-          nextX += (charData.w + settings.letterSpacing); 
+          nextX += charData.w + settings.letterSpacing; 
         }
       }
       
       if (settings.color) {
         var colorData = parseColor(settings.color);
 
-        var dx = x - (width / 2)  * scale * settings.scale;
-        var dy = y - (height / 2) * scale * settings.scale;
-        var dw = width  * scale * settings.scale + 1;
-        var dh = height * scale * settings.scale + 1;
+        var dw = width  + 1;
+        var dh = height + 1;
+        var dy = 0;
+        var dx = 0;
 
-        // var dy = (function() {
-        //   switch(settings.textBaseline) {
-        //     case "top":
-        //       return y * scale * settings.scale;
-        //     case "center": 
-        //       return y * scale - (height / 2) * scale * settings.scale;
-        //   }
-        // })();
+        switch (settings.textAlign) {
+          case "center":
+            // dx -= dw / 2;
+            break;
+        }
+        
+        switch (settings.textBaseline) {
+          case "center":
+            // dy -= dh / 2;
+            break;
+        }
 
         var imageData = ctx2.getImageData(
           dx,
@@ -179,12 +196,20 @@ var TextRenderer = (function() {
             pixels[i+1] = colorData[1]; //green
             pixels[i+2] = colorData[2]; //blue
           }
+
+          // Test
+          // pixels[i]   = colorData[0]; //red
+          // pixels[i+1] = colorData[1]; //green
+          // pixels[i+2] = colorData[2]; //blue
+          // pixels[i+3] = 255; //blue
         }
         ctx2.putImageData(imageData, dx, dy);
       }
       ctx2.restore();
-      
+
       ctx.drawImage(canvas2, 0, 0);
+
+      ctx.restore();
     }
   };
 })();

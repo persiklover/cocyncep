@@ -74,6 +74,6 @@ var Vec2 = class {
   }
   
   toString() {
-    return `{${this.x}; ${this.y}}`;
+    return `{${this.x.toFixed(4)}; ${this.y.toFixed(4)}}`;
   }
 }

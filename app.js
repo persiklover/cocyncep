@@ -2,6 +2,8 @@ var fs = require('fs');
 eval(fs.readFileSync('server/js/utils.js') + '');
 eval(fs.readFileSync('server/js/Player.js') + '');
 eval(fs.readFileSync('server/js/Vec2.js') + '');
+eval(fs.readFileSync('server/js/Skills/Skill.js') + '');
+eval(fs.readFileSync('server/js/Skills/SkillArrow.js') + '');
 
 var express = require('express');
 var app = express();
@@ -17,9 +19,43 @@ var players = [];
 var mobs = [];
 var spells = [];
 
+var currentId = -1;
+
 function run() {
   setInterval(function() {
+    for (var i = 0; i < spells.length; i++) {
+      var spell = spells[i];
+      if (!spell) {
+        continue;
+      }
 
+      if (spell._dead) {
+        io.emit("s_removeSkill", spells.indexOf(spell));
+
+        delete spells[i];
+      }
+      else {
+        spell.update();
+
+        for (var p of getAllPlayers()) {
+          // exclude the initiator
+          if (p.id == spell.initiatorID) {
+            continue;
+          }
+
+          if (spell.pos.distance(p.pos) < 20) {
+            console.log('DAMAGE');
+            io.emit("s_damagePlayer", {
+              id:          p.id,
+              initiatorID: spell.initiatorID,
+              damage:      spell.damage
+            });
+
+            spell._dead = true;
+          }
+        }
+      }
+    }
   }, 16);
 }
 
@@ -139,12 +175,13 @@ io.on('connection', function (socket) {
 
     // Send him everyone else's data
     socket.emit('s_hello', {
-      // me:   {
-      //   hp:    player.hp,
-      //   maxHP: player.maxHP,
-      //   x:     player.pos.x,
-      //   y:     player.pos.y
-      // },
+      me:   {
+        id:    id,
+        // hp:    player.hp,
+        // maxHP: player.maxHP,
+        // x:     player.pos.x,
+        // y:     player.pos.y
+      },
       players: getAllPlayers()
       // map:   packMap(),
     });
@@ -153,7 +190,7 @@ io.on('connection', function (socket) {
     players[id] = player;
   });
 
-  socket.on('c_update', function (packet) {
+  socket.on('c_update', function(packet) {
     if (!players[id]) {
       return;
     }
@@ -169,7 +206,7 @@ io.on('connection', function (socket) {
     socket.broadcast.emit('s_update', packet);
   });
 
-  socket.on('c_rest', function () {
+  socket.on('c_rest', function() {
     if (!players[id]) {
       return;
     }
@@ -180,13 +217,15 @@ io.on('connection', function (socket) {
     socket.broadcast.emit('s_rest', id);
   });
 
-  socket.on('attack', function (user) {
+  socket.on('c_attack', function(playerData) {
     // todo: can we attack in the first place?
     // 
-    var px = user.x;
-    var py = user.y;
+    var player = players[id];
+    if (!player) {
+      return;
+    }
 
-    switch (user.className) {
+    switch (player.className) {
       case 'swordsman':
         // instantly proccess attack - find nearby mobs
         for (var mob of mobs) {
@@ -202,28 +241,30 @@ io.on('connection', function (socket) {
         }
         break;
       case 'archer':
-        var speed = 2.5;
-        if (!user.facingRight) {
-          speed *= -1;
-        }
+        var speed = new Vec2(playerData.mouse.x, playerData.mouse.y)
+          .sub(player.pos)
+          .normalize()
+          .mul(3.2);
+
         // spawn an arrow
-        ++nextIndex;
-        var arrow = new SpellArrow(id, px, py - 14, speed, 0);
-        arrow.id = nextIndex;
-        spells[nextIndex] = arrow;
+        var arrow = new SkillArrow(id, player.pos.x, player.pos.y, speed.x, speed.y);
+        arrow.id = ++currentId;
+        spells[currentId] = arrow;
         
         // Send everyone arrow's data
-        io.emit('spell_new', {
-          id:   nextIndex,
+        io.emit('s_newSkill', {
+          id:   currentId,
           type: arrow.type,
           x:    arrow.pos.x,
-          y:    arrow.pos.y
+          y:    arrow.pos.y,
+          dx:   arrow.speed.x,
+          dy:   arrow.speed.y
         });
         break;
     }
 
     // update his data in `players`
-    players[id].currentState = user.currentState;
+    players[id].currentState = playerData.currentState;
     // Send everyone else his data
     socket.broadcast.emit('attack', id);
   });

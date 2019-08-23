@@ -2,9 +2,15 @@ var GUI = (function() {
 
   var messages = [];
 
+  var skillslotsTexture = Loader.loadImage("img/skills/skillslots.png");
+  var skillIcons;
+  var locked;
+
   return class {
     constructor(player) {
       this.player = player;
+      skillIcons = Loader.loadImage(`img/skills/${player.className}.png`);
+      locked = Loader.loadImage(`img/skills/locked.png`);
 
       this.startTime = Date.now();
     }
@@ -21,16 +27,42 @@ var GUI = (function() {
       }
     }
 
-    render(ctx) {
-      TextRenderer.render(
-        ctx,
-        `x: ${this.player.x.toFixed(4)}, y: ${this.player.y.toFixed(4)}`,
-        this.player.x,
-        this.player.y,
-        {
-          textAlign: "left"
+    render(ctx = new CanvasRenderingContext2D) {
+      var skillslotsX = WIDTH / 2 - skillslotsTexture.width / 2;
+      var skillslotsY = HEIGHT / 2 + 50;
+
+      for (var i = 0; i < 3; i++) {
+        if (i < this.player.unlockedSkills) {
+          // console.log('!');
+          ctx.drawImage(
+            skillIcons,
+            23 * i,
+            0,
+            23,
+            23,
+            skillslotsX + (23 * i) + i + 1,
+            skillslotsY + 1,
+            23,
+            23
+          );
         }
+        else {
+          // empty skills
+          ctx.drawImage(
+            locked,
+            skillslotsX + (23 * i) + i + 1,
+            skillslotsY + 1
+          );
+        }
+      }
+
+      // Skill slots
+      ctx.drawImage(
+        skillslotsTexture,
+        skillslotsX,
+        skillslotsY
       );
+
       
       // Display all the messages
       // for (var i = 0; i < messages.length; i++) {

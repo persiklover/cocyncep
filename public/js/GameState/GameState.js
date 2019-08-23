@@ -1,4 +1,4 @@
-var GameState = (function () {
+var GameState = (function() {
 
   var camera = new Camera();
 
@@ -28,9 +28,11 @@ var GameState = (function () {
   var players = [];
   var sprites = [];
   var mobs = [];
-  var spells = [];
+  var skills = [];
 
   var gui;
+
+  var dustSpawner;
 
   var cursorImg = Loader.loadImage('img/cursor.png');
 
@@ -54,7 +56,8 @@ var GameState = (function () {
     }
 
     init(args) {
-      player = new Player(50, 50, args.className, args.username);
+      // 200, 200
+      player = new Player(30, 60, args.className, args.username);
       console.log(player.name);
 
       gui = new GUI(player);
@@ -63,16 +66,18 @@ var GameState = (function () {
       floor = new Sprite(Loader.loadImage('img/map.png'), 0, 0);
 
       // Sprites
-      sprites.push(new Sprite(Loader.loadImage('img/seashell-1.png'), 15, 40,   { x: 6, y: 9 }));
-      sprites.push(new Sprite(Loader.loadImage('img/seashell-1.png'), 220, 120, { x: 6, y: 9 }));
+      sprites.push(new Sprite(Loader.loadImage('img/seashell-1.png'), 110, 250, { x: 6, y: 9 }));
+      sprites.push(new Sprite(Loader.loadImage('img/seashell-1.png'), 320, 120, { x: 6, y: 9 }));
 
-      mobs.push(new AnimatedObject(250, 100, new Animation(
+      mobs.push(new AnimatedObject(350, 270, new Animation(
         Loader.loadImage(`img/crab.png`),
         [2, 2],      // imagesNum
         [3500, 120],  // delays
         [31, 13],    // sizes
         { x: 15, y: 13 }
-      )).setAnimation(1));
+      )));
+
+      dustSpawner = new DustSpawner();
 
       setInterval(function() {
         if (_moved) {
@@ -87,7 +92,7 @@ var GameState = (function () {
           _stoppedMoving = false;
           io.emit('c_rest', null);
         }
-      }, 40);
+      }, 25);
 
       // c_ -> sent from client
       // s_ -> sent from server
@@ -100,36 +105,38 @@ var GameState = (function () {
         currentState: player.currentState
       });
 
-      io.on('s_enter', function (playerData) {
+      io.on('s_enter', function(playerData) {
         addDebil(playerData.x, playerData.y, playerData.className, playerData.name, playerData.id);
       });
 
-      io.on('s_update', function (playerData) {
+      io.on('s_update', function(playerData) {
         var p = players[playerData.id];
         p.x = playerData.x;
         p.y = playerData.y;
-        p.facingDirection.x = (playerData.facingRight) ? 1 : -1;
+        // p.facingDirection.x = (playerData.facingRight) ? 1 : -1;
         p.currentState = playerData.currentState;
       });
 
-      io.on('s_changedDir', function (playerData) {
+      io.on('s_changeDir', function(playerData) {
         var p = players[playerData.id];
         p.facingDirection.x = (playerData.facingRight) ? 1 : -1;
       });
 
-      io.on('s_rest', function (id) {
+      io.on('s_rest', function(id) {
         var p = players[id];
         p.currentState = 0;
       });
 
-      io.on('s_leave', function (id) {
-        console.log(`${id} left :(`);
-        // todo: remove
+      io.on('s_leave', function(id) {
         delete players[id];
       });
 
-      io.on('s_hello', function (packet) {
+      io.on('s_hello', function(packet) {
         console.log(packet);
+
+        var me = packet.me;
+        player.id = me.id;
+        console.log('id = ' + me.id);
 
         var players = packet.players;
         for (var key of Object.keys(players)) {
@@ -137,6 +144,45 @@ var GameState = (function () {
 
           addDebil(playerData.pos.x, playerData.pos.y, playerData.className, playerData.name, playerData.id);
         }
+      });
+
+      io.on('s_newSkill', function(skillData) {
+        var skill;
+        switch (skillData.type) {
+          case "arrow": 
+            skill = new SkillArrow(skillData.x, skillData.y, skillData.dx, skillData.dy);
+            break;
+        }
+
+        if (skill) {
+          skills[skillData.id] = skill;
+        }
+      });
+
+      io.on('s_removeSkill', function(id) {
+        var skill = skills[id];
+        if (!skill) {
+          return;
+        }
+
+        delete skills[id];
+      });
+
+      io.on('s_damagePlayer', function(data) {
+        // is it us?
+        if (data.id == player.id) {
+          // damage ourselves
+          console.warn("It hurts!");
+        }
+        else {
+          var p = players[data.id];
+          if (!p) {
+            return;
+          }
+          
+          console.log('damaged '+data.id);
+        }
+
       });
     }
 
@@ -178,6 +224,10 @@ var GameState = (function () {
     }
 
     update() {
+      if (player.dx || player.dy) {
+        dustSpawner.create(player.x, player.y);
+      }
+
       var facingDirectionBefore = player.facingDirection;
       player.facingDirection = new Vec2(mouse.x, mouse.y)
         .sub(new Vec2(player.x, player.y))
@@ -186,7 +236,7 @@ var GameState = (function () {
 
       if ((facingDirectionBefore.x > 0 && player.facingDirection.x < 0) ||
           (facingDirectionBefore.x < 0 && player.facingDirection.x > 0)) {
-        io.emit('c_changedDir');
+        io.emit('c_changeDir');
       }
 
       camera.x = player.x - WIDTH / 2;
@@ -201,12 +251,19 @@ var GameState = (function () {
 
       for (var key of Object.keys(players)) {
         var p = players[key];
-        p.update(ctx);
+        p.update();
+      }
+
+      for (var key of Object.keys(skills)) {
+        var s = skills[key];
+        s.update();
       }
 
       for (var mob of mobs) {
         mob.update();
       }
+
+      dustSpawner.update();
 
       gui.update();
     }
@@ -239,11 +296,17 @@ var GameState = (function () {
       var toDraw = []
         .concat(sprites)
         .concat(mobs)
-        .concat(player);
+        .concat(player)
+        .concat(dustSpawner.particles);
       
       for (var key of Object.keys(players)) {
         var p = players[key];
         toDraw.push(p);
+      }
+
+      for (var key of Object.keys(skills)) {
+        var s = skills[key];
+        toDraw.push(s);
       }
 
       // sorting
@@ -254,22 +317,14 @@ var GameState = (function () {
         toDraw[i].render(ctx);
       }
 
-      TextRenderer.render(
-        ctx,
-        player.name,
-        player.x,
-        player.y - player.anim.height - 5,
-        {
-          // color: "#000022"
-        }
-      );
-
       ctx.restore();
       
       // GUI
       ctx.save();
 
       ctx.scale(scale, scale);
+
+      gui.render(ctx);
 
       if (inventoryOpen) {
         ctx.drawImage(
@@ -278,8 +333,6 @@ var GameState = (function () {
           HEIGHT / 2 - inventoryTexture.height / 2
         );
       }
-      
-      // gui.render(ctx);
       
       ctx.restore();
     }
@@ -309,7 +362,7 @@ var GameState = (function () {
     }
 
     click(e) {
-      // actor.preformAttack();
+      player.attack(mouse);
       _moved = true;
     }
     

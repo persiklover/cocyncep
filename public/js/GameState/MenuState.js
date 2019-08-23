@@ -9,17 +9,11 @@ var MenuState = (function() {
   var error = "";
 
   var colors = [
-    "rgb(10, 160, 90)",
-    "rgb(255, 10, 60)",
+    "#00eaaa",
+    "#ee25ee",
   ]
 
   var animations = [];
-
-  var bgTexture = Loader.loadImage("img/map.png");
-
-  function isValid(username) {
-    return username.length >= 3;
-  }
 
   return class MenuState {
     constructor(gsm) {
@@ -27,11 +21,10 @@ var MenuState = (function() {
     }
 
     init() {
-      // this.gsm.setState(this.gsm.GAMESTATE, {
-      //   username: "admin",
-      //   // className: classNames[currentChoice]
-      //   className: classNames[0]
-      // });
+      this.gsm.setState(this.gsm.GAMESTATE, {
+        username: "admin",
+        className: classNames[0]
+      });
 
       animations = [
         animationList.archer,
@@ -71,34 +64,35 @@ var MenuState = (function() {
       var cx = WIDTH / 2;
       var cy = HEIGHT / 2;
 
-      // Proffesstion
-      TextRenderer.render(ctx, `profession:`, cx, cy + 8, {
-        scale: .75,
-        opacity: .6
-      });
-      TextRenderer.render(ctx, `${classNames[currentChoice]}`, cx, cy + 17, {
-        scale: 1.5,
-        color: colors[currentChoice]
-      });
-      
       // Render selected character
       if (animations[currentChoice]) {
         animations[currentChoice].render(ctx, cx, cy);
       }
 
-      // 
+      // Proffesstion
+      TextRenderer.render(ctx, `profession:`, cx, cy + 8, {
+        scale: .75,
+        opacity: .6
+      });
+
+      TextRenderer.render(ctx, `${classNames[currentChoice]}`, cx, cy + 17, {
+        scale: 1.5,
+        color: colors[currentChoice]
+      });
+
       TextRenderer.render(ctx, `enter your name:`, cx, cy + 40, {
         scale: .75,
         opacity: .6
       });
       
       // Render name
-      TextRenderer.render(ctx, name, cx, cy + 45, {
-        textBaseline: "top"
+      TextRenderer.render(ctx, name, cx, cy + 50, {
+        textBaseline: "top",
+        scale: 1.25
       });
       
       if (error) {
-        TextRenderer.render(ctx, error, cx, cy + 55, {
+        TextRenderer.render(ctx, error, cx, cy + 65, {
           textBaseline: "top",
           color: "#FF0000"
         });
@@ -113,8 +107,6 @@ var MenuState = (function() {
       // Enter
       if (keyCode == 13) {
         io.emit("c_nameValidation", name);
-        console.log(name + " sent");
-        
       }
 
       // Prev character
@@ -132,27 +124,21 @@ var MenuState = (function() {
     }
     
     keyUp(key) {
+      var entered = String.fromCharCode(key.which).toLowerCase();
+      if (entered.match(/\w|\d/)) {
+        name += entered;
+      }
+      
       var keyCode = key.keyCode;
       switch (keyCode) {
-        case 13: // enter
-        case 16: // shift
-        case 17: // ctrl
-        case 18: // alt
-        case 20: // caps lock
-        case 37: // left
-        case 39: // right
-          return;
         case 8: // backspace
-          name = name.slice(0, -1);
-          if (name.length == 0) {
+          if (key.ctrlKey) {
             name = "";
+          }
+          else {
+            name = name.slice(0, -1);
           }
           break;
-        default:
-          if (name == "") {
-            name = "";
-          }
-          name += key.key;
       }
     }
 

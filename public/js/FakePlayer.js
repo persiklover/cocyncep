@@ -27,6 +27,16 @@ var FakePlayer = (function () {
 
     render(ctx) {
       this.anim.render(ctx, this.x, this.y);
+
+      TextRenderer.render(
+        ctx,
+        this.name,
+        this.x,
+        this.y - this.anim.height - 5,
+        {
+          // color: "#000022"
+        }
+      );
     }
   };
 })();

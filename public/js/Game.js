@@ -97,7 +97,6 @@ var Game = (function() {
   
   function render() {
     ctx.clearRect(0, 0, WIDTH * scale, HEIGHT * scale);
-    ctx2.clearRect(0, 0, WIDTH * scale, HEIGHT * scale);
 
     gsm.render(ctx);
   }

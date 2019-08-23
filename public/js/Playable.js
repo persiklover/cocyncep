@@ -19,26 +19,25 @@ class Playable extends Entity {
     };
   }
 
-  preformAttack() {
+  attack(mouse) {
     if (!this.attacking) {
       this.attacking = true;
 
-      this.currentState = 'ATTACK';
-      this.anim.play(this.states.indexOf('ATTACK'), () => {
+      this.rooted = true;
+
+      this.currentState = this.states.ATTACK;
+      this.anim.play(this.currentState, () => {
         // Send data to server here
-        var packet = {
-          className:    this.className,
-          x:            this.x,
-          y:            this.y,
-          facingRight:  this.facingRight,
-          currentState: this.currentState
-        };
-        io.emit('attack', packet);
+        io.emit('c_attack', {
+          mouse: { x: mouse.x, y: mouse.y }
+        });
         
         this.anim.pause();
         setTimeout(() => {
+          this.rooted = false;
+
           this.attacking = false;
-          this.currentState = 'IDLE';
+          this.currentState = this.states.IDLE;
           this.anim.resume();
           this.anim.play(0);
         }, 150);
@@ -46,6 +45,11 @@ class Playable extends Entity {
       return true;
     }
     return false;
+  }
+
+  root() {
+    this.rooted = true;
+    this.dx = this.dy = 0;
   }
 
   left() {
