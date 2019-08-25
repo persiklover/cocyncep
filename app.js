@@ -50,30 +50,8 @@ function run() {
 
           if (spell.pos.distance(p.pos) < spell.hitDistance) {
             spell._dead = true;
-            
-            var damageResult = p.dealDamage(spell.damage);
 
-            if (p.hp == 0) {
-              var deathX = p.pos.x;
-              var deathY = p.pos.y;
-              p.reborn();
-              p.pos.x = startPoint.x;
-              p.pos.y = startPoint.y;
-
-              io.emit('s_playerDied', {
-                id:     p.id,
-                deathX: deathX,
-                deathY: deathY,
-                x:      p.pos.x,
-                y:      p.pos.y
-              });
-            } 
-
-            io.emit("s_damagePlayer", {
-              id:          p.id,
-              initiatorID: spell.initiatorID,
-              damage:      damageResult
-            });
+            damagePlayer(p, spell);
           }
         }
       }
@@ -249,19 +227,21 @@ io.on('connection', function (socket) {
     }
 
     switch (player.className) {
-      case 'swordsman':
-        // instantly proccess attack - find nearby mobs
-        for (var mob of mobs) {
-          if (!mob) { continue; }
-          var x = mob.pos.x - px;
-          var y = mob.pos.y - py;
-          var dist = Math.sqrt(x * x + y * y);
-          // todo: check attack radius
-          // ...
-          if (dist < 38) {
-            damageMob(mob, 18, id);
+      case 'scientist':
+        for (var p of getAllPlayers()) {
+          // exclude the initiator
+          if (p.id == id) {
+            continue;
+          }
+
+          if (p.pos.distance(player.pos) < 10) {
+            damagePlayer(p, {
+              damage:      4,
+              initiatorID: id
+            });
           }
         }
+        
         break;
       case 'archer':
         var speed = new Vec2(playerData.mouse.x, playerData.mouse.y)
@@ -356,4 +336,30 @@ function damageMob(mob, damage, initiatorID) {
   else {
     mob.dealAttack(player);
   }
+}
+
+function damagePlayer(target, skill) {
+  var damageResult = target.dealDamage(skill.damage);
+
+  if (target.hp == 0) {
+    var deathX = target.pos.x;
+    var deathY = target.pos.y;
+    target.reborn();
+    target.pos.x = startPoint.x;
+    target.pos.y = startPoint.y;
+
+    io.emit('s_playerDied', {
+      id: target.id,
+      deathX: deathX,
+      deathY: deathY,
+      x: target.pos.x,
+      y: target.pos.y
+    });
+  }
+
+  io.emit("s_damagePlayer", {
+    id: target.id,
+    initiatorID: skill.initiatorID,
+    damage: damageResult
+  });
 }
