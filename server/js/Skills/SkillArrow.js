@@ -5,7 +5,7 @@ var SkillArrow = (function() {
       super(initiatorID, x, y);
 
       this.type = 'arrow';
-      this.damage = 10;
+      this.damage = 2.5;
 
       this.speed = new Vec2(dx, dy);
       if (this.speed.x > 0) {

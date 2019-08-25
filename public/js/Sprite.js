@@ -13,10 +13,10 @@ class Sprite extends Entity {
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.translate(-this.center.x, -this.center.y);
+    ctx.translate(-this.offset.x, -this.offset.y);
     if (params.rotation) {
       ctx.rotate(Math.toRadian(params.rotation));
     }
-    ctx.translate(-this.offset.x, -this.offset.y);
     ctx.drawImage(this.img, 0, 0);
     ctx.restore();
   }

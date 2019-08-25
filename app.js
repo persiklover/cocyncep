@@ -44,7 +44,6 @@ function run() {
           }
 
           if (spell.pos.distance(p.pos) < 20) {
-            console.log('DAMAGE');
             io.emit("s_damagePlayer", {
               id:          p.id,
               initiatorID: spell.initiatorID,
@@ -177,10 +176,11 @@ io.on('connection', function (socket) {
     socket.emit('s_hello', {
       me:   {
         id:    id,
-        // hp:    player.hp,
-        // maxHP: player.maxHP,
-        // x:     player.pos.x,
-        // y:     player.pos.y
+        lvl:   player.lvl,
+        hp:    player.hp,
+        maxHP: player.maxHP,
+        x:     player.pos.x,
+        y:     player.pos.y
       },
       players: getAllPlayers()
       // map:   packMap(),
@@ -212,7 +212,7 @@ io.on('connection', function (socket) {
     }
     // update his data in `players`
     var p = players[id];
-    p.currentState = 'IDLE';
+    p.currentState = 0;
     // Send everyone else his data
     socket.broadcast.emit('s_rest', id);
   });
@@ -244,7 +244,7 @@ io.on('connection', function (socket) {
         var speed = new Vec2(playerData.mouse.x, playerData.mouse.y)
           .sub(player.pos)
           .normalize()
-          .mul(3.2);
+          .mul(4.25);
 
         // spawn an arrow
         var arrow = new SkillArrow(id, player.pos.x, player.pos.y, speed.x, speed.y);
@@ -266,7 +266,7 @@ io.on('connection', function (socket) {
     // update his data in `players`
     players[id].currentState = playerData.currentState;
     // Send everyone else his data
-    socket.broadcast.emit('attack', id);
+    socket.broadcast.emit('s_attack', id);
   });
 });
 

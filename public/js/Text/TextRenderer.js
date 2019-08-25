@@ -111,6 +111,10 @@ var TextRenderer = (function() {
       ctx2.clearRect(0, 0, WIDTH * scale, HEIGHT * scale);
       ctx2.save();
 
+      if (settings.opacity < 1) {
+        ctx2.globalAlpha = settings.opacity;
+      }
+
       switch (settings.textAlign) {
         case "center":
           ctx.translate(-width * (1 / scalar), 0);
@@ -132,10 +136,6 @@ var TextRenderer = (function() {
       // render area
       // ctx2.strokeStyle = "orange";
       // ctx2.strokeRect(0, 0, width, height);
-
-      if (settings.opacity < 1) {
-        ctx2.globalAlpha = settings.opacity;
-      }
 
       for (var char of data) {
         if (char == " ") {
@@ -191,11 +191,13 @@ var TextRenderer = (function() {
         var pixels = imageData.data;
 
         for (var i = 0; i < pixels.length; i += 4) {
-          if (pixels[i+3] != 0) {
-            pixels[i]   = colorData[0]; //red
-            pixels[i+1] = colorData[1]; //green
-            pixels[i+2] = colorData[2]; //blue
+          if (pixels[i+3] == 0) {
+            continue;
           }
+          
+          pixels[i]   = colorData[0]; //red
+          pixels[i+1] = colorData[1]; //green
+          pixels[i+2] = colorData[2]; //blue
 
           // Test
           // pixels[i]   = colorData[0]; //red

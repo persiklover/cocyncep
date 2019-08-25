@@ -6,6 +6,11 @@ var GUI = (function() {
   var skillIcons;
   var locked;
 
+  function renderBar(ctx, x = 0, y = 0, w = 0, h = 0, color) {
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, w + .5, h + .5);
+  }
+
   return class {
     constructor(player) {
       this.player = player;
@@ -28,8 +33,48 @@ var GUI = (function() {
     }
 
     render(ctx = new CanvasRenderingContext2D) {
+      ctx.save();
+      ctx.translate(10.5, 10.5);
+
+      TextRenderer.render(ctx, `lvl ${this.player.lvl}`, 0, 0, {
+        textAlign: "left"
+      });
+
+      var nextY = 10;
+      // Health bar
+      renderBar(ctx, 0, nextY, 65, 6, "lightgray");
+      
+      if (this.player.hp > 0) {
+        var persentage = (this.player.hp / this.player.maxHP);
+        var color = persentage > .66 ? "lime" : persentage > .33 ? "orange" : "red";
+        renderBar(ctx, 0, nextY, 65 * persentage, 6, color);
+      }
+
+      TextRenderer.render(ctx, `${this.player.hp}/${this.player.maxHP}`, 65 / 2, nextY + .5, {
+        scale: .75
+      });
+
+      nextY += 10;
+
+      // XP bar
+      renderBar(ctx, 0, nextY, 65, 6, "lightgray");
+
+      if (this.player.xp > 0) {
+        var persentage = (this.player.xp / this.player.xpRequired);
+        renderBar(ctx, 0, nextY, 65 * persentage, 6, "hotpink");
+      }
+
+      TextRenderer.render(ctx, `${this.player.xp}/${this.player.xpRequired}`, 65 / 2, nextY + .5, {
+        scale: .75
+      });
+
+      ctx.restore();
+
+      return;
+
+      // Skills
       var skillslotsX = WIDTH / 2 - skillslotsTexture.width / 2;
-      var skillslotsY = HEIGHT / 2 + 50;
+      var skillslotsY = HEIGHT - 50;
 
       for (var i = 0; i < 3; i++) {
         if (i < this.player.unlockedSkills) {

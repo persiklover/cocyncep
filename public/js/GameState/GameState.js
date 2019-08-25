@@ -33,6 +33,7 @@ var GameState = (function() {
   var gui;
 
   var dustSpawner;
+  var hitTextManager;
 
   var cursorImg = Loader.loadImage('img/cursor.png');
 
@@ -57,7 +58,7 @@ var GameState = (function() {
 
     init(args) {
       // 200, 200
-      player = new Player(30, 60, args.className, args.username);
+      player = new Player(200, 200, args.className, args.username);
       console.log(player.name);
 
       gui = new GUI(player);
@@ -78,6 +79,7 @@ var GameState = (function() {
       )));
 
       dustSpawner = new DustSpawner();
+      hitTextManager = new HitTextManager();
 
       setInterval(function() {
         if (_moved) {
@@ -136,7 +138,6 @@ var GameState = (function() {
 
         var me = packet.me;
         player.id = me.id;
-        console.log('id = ' + me.id);
 
         var players = packet.players;
         for (var key of Object.keys(players)) {
@@ -168,10 +169,25 @@ var GameState = (function() {
         delete skills[id];
       });
 
+      io.on('s_attack', function(id) {
+        var p = players[id];
+        if (!p) {
+          return;
+        }
+
+        p.attack();
+      });
+
       io.on('s_damagePlayer', function(data) {
+        var x, y;
+
         // is it us?
         if (data.id == player.id) {
-          // damage ourselves
+          var x = player.x;
+          var y = player.y - player.anim.height - 15;
+
+          player.dealDamage(data.damage);
+          
           console.warn("It hurts!");
         }
         else {
@@ -179,10 +195,13 @@ var GameState = (function() {
           if (!p) {
             return;
           }
-          
           console.log('damaged '+data.id);
+
+          x = p.x;
+          y = p.y - p.anim.height - 15;
         }
 
+        hitTextManager.create(x, y, data.damage);
       });
     }
 
@@ -240,7 +259,7 @@ var GameState = (function() {
       }
 
       camera.x = player.x - WIDTH / 2;
-      camera.y = player.y - HEIGHT / 2;
+      camera.y = player.y - player.anim.height/2 - HEIGHT / 2;
 
       if (camera.x < 0) {
         camera.x = 0;
@@ -264,6 +283,8 @@ var GameState = (function() {
       }
 
       dustSpawner.update();
+
+      hitTextManager.update();
 
       gui.update();
     }
@@ -297,11 +318,15 @@ var GameState = (function() {
         .concat(sprites)
         .concat(mobs)
         .concat(player)
-        .concat(dustSpawner.particles);
+        .concat(dustSpawner.particles)
+        .concat(hitTextManager.particles);
       
       for (var key of Object.keys(players)) {
         var p = players[key];
         toDraw.push(p);
+        for (var particle of p._dustSpawner.particles) {
+          toDraw.push(particle);
+        }
       }
 
       for (var key of Object.keys(skills)) {
@@ -314,7 +339,12 @@ var GameState = (function() {
       // console.log(toDraw);
 
       for (var i = 0; i < toDraw.length; i++) {
-        toDraw[i].render(ctx);
+        try {
+          toDraw[i].render(ctx);
+        }
+        catch (e) {
+          console.warn(toDraw[i]);
+        }
       }
 
       ctx.restore();
@@ -344,15 +374,15 @@ var GameState = (function() {
       if (keyCode == Keyboard.E) {
         inventoryOpen = !inventoryOpen;
       }
+
+      if (keyCode == Keyboard.F) {
+        hitTextManager.create(player.x, player.y - player.anim.height - 15, 10);
+      }
     }
     
     keyUp(key) {
       var keyCode = key.keyCode;
       Keyboard.keyUp(keyCode);
-
-      if (keyCode == 70) {
-        addDebil(Math.randomInt(0, 100), Math.randomInt(0, 100), "swordsman", "de_bil");
-      }
     }
 
     mouseMove(e) {

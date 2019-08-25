@@ -18,7 +18,19 @@ var Player = (function() {
 
       this.facingDirection = new Vec2(1, 0);
 
-      this.unlockedSkills = 1;
+      this.lvl        = 1;
+      this.hp         = 10;
+      this.maxHP      = 10;
+      this.xp         = 0;
+      this.xpRequired = 10;
+      this.unlockedSkills = 0;
+    }
+
+    dealDamage(damage = 0) {
+      this.hp -= damage;
+      if (this.hp < 0) {
+        this.hp = 0;
+      }
     }
 
     update() {
@@ -74,6 +86,8 @@ var Player = (function() {
     }
 
     get facingRight() { return this.facingDirection.x > 0; }
+
+    get top() { return this.y - this.anim.height - 15; }
 
     render(ctx) {
       this.anim.render(ctx, this.x, this.y);

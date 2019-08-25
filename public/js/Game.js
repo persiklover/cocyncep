@@ -1,4 +1,4 @@
-const HEIGHT = 200;
+const HEIGHT = 240;
 const WIDTH  = HEIGHT * (16 / 9);
 
 var canvas;
