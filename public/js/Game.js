@@ -18,19 +18,13 @@ var animationList = {
     { x: 11, y: 38 }
   ),
 
-  "swordsman": new Animation(
-    Loader.loadImage(`img/swordsman.png`),
-    [2, 2, 2],       // imagesNum
+  "scientist": new Animation(
+    Loader.loadImage(`img/scientist.png`),
+    [2, 2, 3],       // imagesNum
     [600, 120, 70],  // delays
-    [24, 33],        // sizes
+    [32, 33],        // sizes
     { x: 11, y: 33 }
   )
-};
-
-var statsList = {
-  "archer": {
-
-  }
 };
 
 function connect() {

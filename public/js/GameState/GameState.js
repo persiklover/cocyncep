@@ -59,7 +59,7 @@ var GameState = (function() {
     init(args) {
       // 200, 200
       player = new Player(200, 200, args.className, args.username);
-      console.log(player.name);
+      console.log(player.className);
 
       gui = new GUI(player);
 
@@ -113,6 +113,10 @@ var GameState = (function() {
 
       io.on('s_update', function(playerData) {
         var p = players[playerData.id];
+        if (!p) {
+          return;
+        }
+
         p.x = playerData.x;
         p.y = playerData.y;
         // p.facingDirection.x = (playerData.facingRight) ? 1 : -1;
@@ -121,11 +125,19 @@ var GameState = (function() {
 
       io.on('s_changeDir', function(playerData) {
         var p = players[playerData.id];
+        if (!p) {
+          return;
+        }
+
         p.facingDirection.x = (playerData.facingRight) ? 1 : -1;
       });
 
       io.on('s_rest', function(id) {
         var p = players[id];
+        if (!p) {
+          return;
+        }
+
         p.currentState = 0;
       });
 
@@ -202,6 +214,30 @@ var GameState = (function() {
         }
 
         hitTextManager.create(x, y, data.damage);
+      });
+      
+      io.on('s_playerDied', function(playerData) {
+        // is it us?
+        if (playerData.id == player.id) {
+          player.x = playerData.x;
+          player.y = playerData.y;
+        }
+        else {
+          var p = players[playerData.id];
+          if (!p) {
+            return;
+          }
+          
+          p.x = playerData.x;
+          p.y = playerData.y;
+        }
+
+        // sprites.push(new Sprite(
+        //   Loader.loadImage("img/statue.png"),
+        //   playerData.deathX,
+        //   playerData.deathY,
+        //   { x: 9, y: 20 }
+        // ));
       });
     }
 

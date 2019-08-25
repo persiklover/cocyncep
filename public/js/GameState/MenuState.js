@@ -4,7 +4,7 @@ var MenuState = (function() {
   var name = "";
   var classNames = [
     "archer",
-    "swordsman"
+    "scientist"
   ];
   var error = "";
 
@@ -23,12 +23,12 @@ var MenuState = (function() {
     init() {
       this.gsm.setState(this.gsm.GAMESTATE, {
         username: "admin",
-        className: classNames[0]
+        className: "scientist"
       });
 
       animations = [
         animationList.archer,
-        animationList.swordsman
+        animationList.scientist
       ];
 
       io.on("s_nameValidation", (err = "") => {

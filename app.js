@@ -234,7 +234,7 @@ io.on('connection', function (socket) {
             continue;
           }
 
-          if (p.pos.distance(player.pos) < 10) {
+          if (p.pos.distance(player.pos) < 35) {
             damagePlayer(p, {
               damage:      4, 
               initiatorID: id

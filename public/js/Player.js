@@ -99,7 +99,7 @@ var Player = (function() {
         this.x,
         this.y - this.anim.height - 8,
         {
-          color: "#ee22aa"
+          // color: "#ee22aa"
         }
       );
     }
