@@ -17,7 +17,8 @@ var SkillArrow = (function() {
 
       this.birthTime = Date.now();
       this.lifeTime = 3000;
-
+      this.hitDistance = 20;
+      
       this._dead = false;
     }
 

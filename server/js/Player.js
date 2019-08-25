@@ -7,9 +7,13 @@ var Player = (function() {
       this.className = className;
       this.pos       = pos;
 
-      this.lvl = 1;
-      this.xp  = 0;
+      this.lvl        = 1;
+      this.hp         = 10;
+      this.maxHP      = 10;
+      this.xp         = 0;
       this.xpRequired = 10;
+      
+      this.def = 10;
     }
 
     dealDamage(damage = 0) {
@@ -18,6 +22,12 @@ var Player = (function() {
       if (this.hp < 0) {
         this.hp = 0;
       }
+
+      return damage;
+    }
+
+    reborn() {
+      
     }
 
     merge(obj) {
@@ -43,32 +53,6 @@ var Player = (function() {
 
       this.xp = this.xp - this.xpRequired;
       this.xpRequired = (this.lvl + 2) * this.xpRequired;
-    }
-
-    reset() {
-      console.log('reset');
-      
-      this.lvl        = 1;
-      this.hp         = 10;
-      this.xp         = 0;
-      this.xpRequired = 10;
-      this.pos.x      = 50;
-      this.pos.y      = 50;
-
-      io.to(this.id).emit('_dead', {
-        hp:         this.hp,
-        x:          this.pos.x,
-        y:          this.pos.y,
-        xpRequired: this.xpRequired
-      });
-      var socket = io.sockets.connected[this.id];
-      socket.broadcast.emit('update', {
-        id:           this.id,
-        x:            this.pos.x,
-        y:            this.pos.y,
-        currentState: this.currentState,
-        facingRight:  this.facingRight
-      });
     }
   }
 })();

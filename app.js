@@ -8,6 +8,11 @@ eval(fs.readFileSync('server/js/Skills/SkillArrow.js') + '');
 var express = require('express');
 var app = express();
 
+var startPoint = {
+  x: 200,
+  y: 200
+};
+
 app.use(express.static(__dirname + '/public'));
 
 var server = app.listen(80, function () {
@@ -43,14 +48,32 @@ function run() {
             continue;
           }
 
-          if (spell.pos.distance(p.pos) < 20) {
+          if (spell.pos.distance(p.pos) < spell.hitDistance) {
+            spell._dead = true;
+            
+            var damageResult = p.dealDamage(spell.damage);
+
+            if (p.hp == 0) {
+              var deathX = p.pos.x;
+              var deathY = p.pos.y;
+              p.reborn();
+              p.pos.x = startPoint.x;
+              p.pos.y = startPoint.y;
+
+              io.emit('s_playerDied', {
+                id:     p.id,
+                deathX: deathX,
+                deathY: deathY,
+                x:      p.pos.x,
+                y:      p.pos.y
+              });
+            } 
+
             io.emit("s_damagePlayer", {
               id:          p.id,
               initiatorID: spell.initiatorID,
-              damage:      spell.damage
+              damage:      damageResult
             });
-
-            spell._dead = true;
           }
         }
       }
