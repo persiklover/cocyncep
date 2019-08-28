@@ -2,7 +2,7 @@ var MenuState = (function() {
 
   var currentChoice = 0;
   var name = "";
-  var classNames = [
+  var profsList = [
     "archer",
     "scientist"
   ];
@@ -11,8 +11,9 @@ var MenuState = (function() {
   var colors = [
     "#00eaaa",
     "#ee25ee",
-  ]
+  ];
 
+  var sprites = [];
   var animations = [];
 
   return class MenuState {
@@ -21,23 +22,32 @@ var MenuState = (function() {
     }
 
     init() {
-      this.gsm.setState(this.gsm.GAMESTATE, {
-        username: "admin",
-        className: "scientist"
-      });
+      // this.gsm.setState(this.gsm.GAMESTATE, {
+      //   prof: "scientist",
+      //   name: "admin"
+      // });
 
       animations = [
         animationList.archer,
-        animationList.scientist
+        animationList.scientist,
       ];
+
+      for (let i = 0; i < profsList.length; i++) {
+        let prof = profsList[i];
+
+        let sprite = new Sprite(texturesList[prof], WIDTH / 2 + (60 * i), HEIGHT / 2);
+        animationList[prof].bind(sprite).setIndex(1);
+
+        sprites.push(sprite);
+      }
 
       io.on("s_nameValidation", (err = "") => {
         error = err.toLowerCase();
         
         if (error.length == 0) {
           this.gsm.setState(this.gsm.GAMESTATE, {
-            username:  name,
-            className: classNames[currentChoice]
+            prof: profsList[currentChoice],
+            name: name
           });
         }
         else {
@@ -49,8 +59,8 @@ var MenuState = (function() {
     handleInput() {}
 
     update() {
-      if (animations[currentChoice]) {
-        animations[currentChoice].update();
+      for (var anim of animations) {
+        anim.update();
       }
     }
 
@@ -61,13 +71,24 @@ var MenuState = (function() {
       ctx.save();
       ctx.scale(scale, scale);
 
+      ctx.save();
+      ctx.translate(-60 * currentChoice, 0);
+
       var cx = WIDTH / 2;
       var cy = HEIGHT / 2;
 
       // Render selected character
-      if (animations[currentChoice]) {
-        animations[currentChoice].render(ctx, cx, cy);
+      for (var i = 0; i < sprites.length; i++) {
+        var sprite = sprites[i];
+
+        var filter = null;
+        if (i != currentChoice) {
+          filter = Filter.SHADOW;
+        }
+        sprite.render(ctx, {}, filter);
       }
+
+      ctx.restore();
 
       // Proffesstion
       TextRenderer.render(ctx, `profession:`, cx, cy + 8, {
@@ -75,11 +96,11 @@ var MenuState = (function() {
         opacity: .6
       });
 
-      TextRenderer.render(ctx, `${classNames[currentChoice]}`, cx, cy + 17, {
+      TextRenderer.render(ctx, `${profsList[currentChoice]}`, cx, cy + 17, {
         scale: 1.5,
         color: colors[currentChoice]
       });
-
+      
       TextRenderer.render(ctx, `enter your name:`, cx, cy + 40, {
         scale: .75,
         opacity: .6
@@ -112,25 +133,28 @@ var MenuState = (function() {
       // Prev character
       if (keyCode == 37) {
         if (--currentChoice < 0) {
-          currentChoice = classNames.length - 1;
+          currentChoice = animations.length - 1;
         }
       }
       // Next Character
       if (keyCode == 39) {
-        if (++currentChoice > classNames.length - 1) {
+        if (++currentChoice > animations.length - 1) {
           currentChoice = 0;
         }
       }
     }
     
     keyUp(key) {
-      var entered = String.fromCharCode(key.which).toLowerCase();
-      if (entered.match(/\w|\d/)) {
-        name += entered;
-      }
-      
       var keyCode = key.keyCode;
       switch (keyCode) {
+        case 189:
+          if (key.shiftKey) {
+            name += "_"
+          }
+          else {
+            name += "-"
+          }
+          return;
         case 8: // backspace
           if (key.ctrlKey) {
             name = "";
@@ -139,6 +163,12 @@ var MenuState = (function() {
             name = name.slice(0, -1);
           }
           break;
+      }
+
+      var entered = String.fromCharCode(key.which).toLowerCase();
+      console.log(key.keyCode);
+      if (entered.match(/\w|\d/)) {
+        name += entered;
       }
     }
 

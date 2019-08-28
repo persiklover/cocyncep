@@ -1,5 +1,6 @@
 var fs = require('fs');
 eval(fs.readFileSync('server/js/utils.js') + '');
+eval(fs.readFileSync('server/js/Stats.js') + '');
 eval(fs.readFileSync('server/js/Player.js') + '');
 eval(fs.readFileSync('server/js/Vec2.js') + '');
 eval(fs.readFileSync('server/js/Skills/Skill.js') + '');
@@ -19,7 +20,6 @@ var server = app.listen(80, function () {
   console.log('Server is running...');
 });
 
-
 var players = [];
 var mobs = [];
 var spells = [];
@@ -28,6 +28,11 @@ var currentId = -1;
 
 function run() {
   setInterval(function() {
+    for (var player of getAllPlayers()) {
+      player.update();
+    }
+
+    // Spells
     for (var i = 0; i < spells.length; i++) {
       var spell = spells[i];
       if (!spell) {
@@ -156,7 +161,7 @@ io.on('connection', function (socket) {
     var player = new Player(
       id,
       playerData.name,
-      playerData.className,
+      playerData.prof,
       new Vec2(playerData.x, playerData.y)
     );
     player.facingRight  = playerData.facingRight;
@@ -166,7 +171,8 @@ io.on('connection', function (socket) {
     socket.broadcast.emit('s_enter', {
       id:           player.id,
       name:         player.name,
-      className:    player.className,
+      prof:         player.prof,
+      stats:        player.stats,
       x:            player.pos.x,
       y:            player.pos.y,
       facingRight:  player.facingRight,
@@ -178,8 +184,7 @@ io.on('connection', function (socket) {
       me:   {
         id:    id,
         lvl:   player.lvl,
-        hp:    player.hp,
-        maxHP: player.maxHP,
+        stats: player.stats,
         x:     player.pos.x,
         y:     player.pos.y
       },
@@ -200,6 +205,8 @@ io.on('connection', function (socket) {
     var p = players[id];
     p.pos.x        = packet.x;
     p.pos.y        = packet.y;
+    p.dx           = packet.dx;
+    p.dy           = packet.dy;
     p.currentState = packet.currentState;
     p.facingRight  = packet.facingRight;
     // Send everyone else his data
@@ -213,38 +220,56 @@ io.on('connection', function (socket) {
     }
     // update his data in `players`
     var p = players[id];
+    p.dx = 0;
+    p.dy = 0;
     p.currentState = 0;
     // Send everyone else his data
     socket.broadcast.emit('s_rest', id);
   });
 
-  socket.on('c_attack', function(playerData) {
-    // todo: can we attack in the first place?
-    // 
+  socket.on('c_registerAttack', function(attackData) {
+    // проигрываем анимацию 
+    io.emit('s_playerAnimation', {
+      id: id,
+      animationIndex: 2 + attackData.index
+    });
+
     var player = players[id];
     if (!player) {
       return;
     }
 
-    switch (player.className) {
+    switch (player.prof) {
       case 'scientist':
+
         for (var p of getAllPlayers()) {
           // exclude the initiator
           if (p.id == id) {
             continue;
           }
 
-          if (p.pos.distance(player.pos) < 35) {
-            damagePlayer(p, {
-              damage:      4, 
-              initiatorID: id
-            });
+          if (p.pos.distance(player.pos) < 40) {
+            var angle = new Vec2(attackData.mouse.x, attackData.mouse.y)
+              .sub(player.pos)
+              .normalize();
+
+            var angle2 = p.pos
+              .clone()
+              .sub(player.pos)
+              .normalize();
+
+            if (angle.dot(angle2) > .65) {
+              damagePlayer(p, {
+                damage: 35,
+                initiatorID: id
+              });
+            }
           }
         }
-        
+
         break;
       case 'archer':
-        var speed = new Vec2(playerData.mouse.x, playerData.mouse.y)
+        var speed = new Vec2(attackData.mouse.x, attackData.mouse.y)
           .sub(player.pos)
           .normalize()
           .mul(4.25);
@@ -253,21 +278,21 @@ io.on('connection', function (socket) {
         var arrow = new SkillArrow(id, player.pos.x, player.pos.y, speed.x, speed.y);
         arrow.id = ++currentId;
         spells[currentId] = arrow;
-        
+
         // Send everyone arrow's data
         io.emit('s_newSkill', {
-          id:   currentId,
+          id: currentId,
           type: arrow.type,
-          x:    arrow.pos.x,
-          y:    arrow.pos.y,
-          dx:   arrow.speed.x,
-          dy:   arrow.speed.y
+          x: arrow.pos.x,
+          y: arrow.pos.y,
+          dx: arrow.speed.x,
+          dy: arrow.speed.y
         });
         break;
     }
 
     // update his data in `players`
-    players[id].currentState = playerData.currentState;
+    players[id].currentState = attackData.index;
     // Send everyone else his data
     socket.broadcast.emit('s_attack', id);
   });
@@ -339,9 +364,12 @@ function damageMob(mob, damage, initiatorID) {
 }
 
 function damagePlayer(target, skill) {
-  var damageResult = target.dealDamage(skill.damage);
+  var initiator = players[skill.initiatorID];
+  var isCrit = Math.random() <= initiator.stats.crit / 100;
+  var damage = skill.damage + (isCrit * skill.damage);
+  var damageResult = target.dealDamage(damage);
 
-  if (target.hp == 0) {
+  if (target.isDead()) {
     var deathX = target.pos.x;
     var deathY = target.pos.y;
     target.reborn();
@@ -349,17 +377,20 @@ function damagePlayer(target, skill) {
     target.pos.y = startPoint.y;
 
     io.emit('s_playerDied', {
-      id: target.id,
+      id:     target.id,
+      stats:  target.stats,
       deathX: deathX,
       deathY: deathY,
-      x: target.pos.x,
-      y: target.pos.y
+      x:      target.pos.x,
+      y:      target.pos.y
     });
   }
 
   io.emit("s_damagePlayer", {
-    id: target.id,
+    id:          target.id,
     initiatorID: skill.initiatorID,
-    damage: damageResult
+    damage:      damageResult,
+    isCrit:      isCrit,
+    hp:          target.stats.hp
   });
 }

@@ -39,6 +39,10 @@ var Vec2 = class {
     return this;
   }
 
+  dot(v = new Vec2) {
+    return this.x * v.x + this.y * v.y;
+  }
+
   distance(v = new Vec2()) {
     var x = this.x - v.x;
     var y = this.y - v.y;

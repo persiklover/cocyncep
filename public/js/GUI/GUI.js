@@ -2,9 +2,9 @@ var GUI = (function() {
 
   var messages = [];
 
-  var skillslotsTexture = Loader.loadImage("img/skills/skillslots.png");
-  var skillIcons;
-  var locked;
+  var skillslotsTexture;
+  var icons;
+  var iconStartY = 0;
 
   function renderBar(ctx, x = 0, y = 0, w = 0, h = 0, color) {
     ctx.fillStyle = color;
@@ -14,8 +14,9 @@ var GUI = (function() {
   return class {
     constructor(player) {
       this.player = player;
-      skillIcons = Loader.loadImage(`img/skills/${player.className}.png`);
-      locked = Loader.loadImage(`img/skills/locked.png`);
+      skillslotsTexture = Loader.loadImage("img/skills/skillslots.png");
+      icons = Loader.loadImage(`img/skills/skills.png`);
+      iconStartY = profsList.indexOf(this.player.prof);
 
       this.startTime = Date.now();
     }
@@ -42,7 +43,8 @@ var GUI = (function() {
 
       var nextY = 10;
       // Health bar
-      renderBar(ctx, 0, nextY, 65, 6, "lightgray");
+      // ctx.globalAlpha = .6;
+      renderBar(ctx, 0, nextY, 65, 6, "rgba(200,200,200,.75)");
       
       if (this.player.hp > 0) {
         var persentage = (this.player.hp / this.player.maxHP);
@@ -50,27 +52,31 @@ var GUI = (function() {
         renderBar(ctx, 0, nextY, 65 * persentage, 6, color);
       }
 
-      TextRenderer.render(ctx, `${this.player.hp}/${this.player.maxHP}`, 65 / 2, nextY + .5, {
+      var hp    = Math.round(this.player.hp);
+      var maxHP = Math.round(this.player.maxHP);
+      TextRenderer.render(ctx, `${hp}/${maxHP}`, 65 / 2, nextY + .5, {
         scale: .75
       });
 
       nextY += 10;
 
       // XP bar
-      renderBar(ctx, 0, nextY, 65, 6, "lightgray");
+      renderBar(ctx, 0, nextY, 65, 6, "rgba(200,200,200,.75)");
 
       if (this.player.xp > 0) {
         var persentage = (this.player.xp / this.player.xpRequired);
         renderBar(ctx, 0, nextY, 65 * persentage, 6, "hotpink");
       }
 
-      TextRenderer.render(ctx, `${this.player.xp}/${this.player.xpRequired}`, 65 / 2, nextY + .5, {
+      var xp         = Math.round(this.player.xp);
+      var xpRequired = Math.round(this.player.xpRequired);
+      TextRenderer.render(ctx, `${xp}/${xpRequired}`, 65 / 2, nextY + .5, {
         scale: .75
       });
 
       ctx.restore();
 
-      return;
+      // return;
 
       // Skills
       var skillslotsX = WIDTH / 2 - skillslotsTexture.width / 2;
@@ -80,9 +86,9 @@ var GUI = (function() {
         if (i < this.player.unlockedSkills) {
           // console.log('!');
           ctx.drawImage(
-            skillIcons,
+            icons,
             23 * i,
-            0,
+            23 * iconStartY,
             23,
             23,
             skillslotsX + (23 * i) + i + 1,
@@ -94,9 +100,15 @@ var GUI = (function() {
         else {
           // empty skills
           ctx.drawImage(
-            locked,
+            icons,
+            23 * 3,
+            0,
+            23,
+            23,
             skillslotsX + (23 * i) + i + 1,
-            skillslotsY + 1
+            skillslotsY + 1,
+            23,
+            23
           );
         }
       }

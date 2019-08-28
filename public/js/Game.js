@@ -9,9 +9,18 @@ var scale = 1;
 
 var io;
 
+var profsList = [
+  "archer",
+  "scientist"
+];
+
+var texturesList = {
+  "archer":    Loader.loadImage("img/archer.png"),
+  "scientist": Loader.loadImage("img/scientist.png"),
+};
+
 var animationList = {
   "archer": new Animation(
-    Loader.loadImage(`img/archer.png`),
     [2, 2, 2, 2],       // imagesNum
     [600, 120, 70, 150],  // delays
     [25, 38],        // sizes
@@ -19,11 +28,10 @@ var animationList = {
   ),
 
   "scientist": new Animation(
-    Loader.loadImage(`img/scientist.png`),
-    [2, 2, 3],       // imagesNum
-    [600, 120, 70],  // delays
-    [32, 33],        // sizes
-    { x: 11, y: 33 }
+    [2, 2, 2, 2],       // imagesNum
+    [600, 120, 100, 400],  // delays
+    [33, 33],        // sizes
+    { x: 10, y: 33 }
   )
 };
 

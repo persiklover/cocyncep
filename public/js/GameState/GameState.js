@@ -25,10 +25,39 @@ var GameState = (function() {
 
   var gameObjects = [];
 
-  var players = [];
+  var players = {
+    _list: [],
+
+    add(x = 0, y = 0, prof = "", name = "", id = -1) {
+      var p = new Player(x, y, prof, name);
+      this._list[id] = p;
+      return p;
+    },
+
+    remove(id = -1) {
+      delete this._list[id];
+    },
+
+    get(id = -1) {
+      return this._list[id];
+    },
+
+    toArray() {
+      var arr = [];
+      for (var key of Object.keys(this._list)) {
+        arr.push(this._list[key]);
+      }
+
+      return arr;
+    }
+  };
   var sprites = [];
   var mobs = [];
   var skills = [];
+
+  var covered = [];
+  var target = null;
+  var targetTexture = Loader.loadImage('img/target.png');
 
   var gui;
 
@@ -40,17 +69,6 @@ var GameState = (function() {
   var inventoryTexture = Loader.loadImage('img/inventory.png');
   var inventoryOpen = false;
 
-  function addDebil(x, y, className, name, id) {
-    var debil = new FakePlayer(
-      x,
-      y,
-      className,
-      name
-    );
-
-    players[id] = debil;
-  }
-
   return class GameState {
     constructor(gsm) {
       this.gsm = gsm;
@@ -58,25 +76,27 @@ var GameState = (function() {
 
     init(args) {
       // 200, 200
-      player = new Player(200, 200, args.className, args.username);
-      console.log(player.className);
+      player = new Player(200, 200, args.prof, args.name);
+      console.log(player.prof);
 
       gui = new GUI(player);
 
       // Sprites
-      floor = new Sprite(Loader.loadImage('img/map.png'), 0, 0);
+      Loader.loadImage('img/map.png', function(texture) {
+        floor = new Sprite(texture, 0, 0);
+      });
 
       // Sprites
-      sprites.push(new Sprite(Loader.loadImage('img/seashell-1.png'), 110, 250, { x: 6, y: 9 }));
-      sprites.push(new Sprite(Loader.loadImage('img/seashell-1.png'), 320, 120, { x: 6, y: 9 }));
+      // sprites.push(new Sprite(Loader.loadImage('img/seashell-1.png'), 110, 250, { x: 6, y: 9 }));
+      // sprites.push(new Sprite(Loader.loadImage('img/seashell-1.png'), 320, 120, { x: 6, y: 9 }));
 
-      mobs.push(new AnimatedObject(350, 270, new Animation(
-        Loader.loadImage(`img/crab.png`),
-        [2, 2],      // imagesNum
-        [3500, 120],  // delays
-        [31, 13],    // sizes
-        { x: 15, y: 13 }
-      )));
+      // mobs.push(new AnimatedObject(350, 270, new Animation(
+      //   Loader.loadImage(`img/crab.png`),
+      //   [2, 2],      // imagesNum
+      //   [3500, 120],  // delays
+      //   [31, 13],    // sizes
+      //   { x: 15, y: 13 }
+      // )));
 
       dustSpawner = new DustSpawner();
       hitTextManager = new HitTextManager();
@@ -86,6 +106,8 @@ var GameState = (function() {
           io.emit('c_update', {
             x:            player.x,
             y:            player.y,
+            dx:           player.dx,
+            dy:           player.dy,
             facingRight:  player.facingRight,
             currentState: player.currentState
           });
@@ -94,68 +116,88 @@ var GameState = (function() {
           _stoppedMoving = false;
           io.emit('c_rest', null);
         }
-      }, 25);
+      }, 40);
 
       // c_ -> sent from client
       // s_ -> sent from server
       io.emit('c_enter', {
-        name: player.name,
-        className: player.className,
-        x: player.x,
-        y: player.y,
-        facingRight: player.facingRight,
+        name:         player.name,
+        prof:         player.prof,
+        x:            player.x,
+        y:            player.y,
+        facingRight:  player.facingRight,
         currentState: player.currentState
       });
 
-      io.on('s_enter', function(playerData) {
-        addDebil(playerData.x, playerData.y, playerData.className, playerData.name, playerData.id);
+      io.on('s_enter', function(pData) {
+        var p = players.add(pData.x, pData.y, pData.prof, pData.name, pData.id);
+        p.maxHP     = pData.stats.maxHP;
+        p.hp        = pData.stats.hp;
+        p.hpRegen   = pData.stats.hpRegen;
+        p.def       = pData.stats.def;
+        p._maxSpeed = pData.stats.speed;
+        p.crit      = pData.stats.crit;
       });
 
-      io.on('s_update', function(playerData) {
-        var p = players[playerData.id];
+      io.on('s_update', function(pData) {
+        var p = players.get(pData.id);
         if (!p) {
           return;
         }
 
-        p.x = playerData.x;
-        p.y = playerData.y;
-        // p.facingDirection.x = (playerData.facingRight) ? 1 : -1;
-        p.currentState = playerData.currentState;
+        p.x  = pData.x;
+        p.y  = pData.y;
+        p.dx = pData.dx;
+        p.dy = pData.dy;
+        p.currentState = pData.currentState;
       });
 
-      io.on('s_changeDir', function(playerData) {
-        var p = players[playerData.id];
+      io.on('s_changeDir', function(pData) {
+        var p = players.get(pData.id);
         if (!p) {
           return;
         }
 
-        p.facingDirection.x = (playerData.facingRight) ? 1 : -1;
+        p.facingDirection.x = (pData.facingRight) ? 1 : -1;
       });
 
       io.on('s_rest', function(id) {
-        var p = players[id];
+        var p = players.get(id);
         if (!p) {
           return;
         }
 
+        p.dx = 0;
+        p.dy = 0;
         p.currentState = 0;
       });
 
       io.on('s_leave', function(id) {
-        delete players[id];
+        players.remove(id);
       });
 
       io.on('s_hello', function(packet) {
         console.log(packet);
 
         var me = packet.me;
-        player.id = me.id;
+        player.id        = me.id;
+        player.maxHP     = me.stats.maxHP;
+        player.hp        = me.stats.hp;
+        player.def       = me.stats.def;
+        player._maxSpeed = me.stats.speed;
+        player.crit      = me.stats.crit;
 
-        var players = packet.players;
-        for (var key of Object.keys(players)) {
-          var playerData = players[key];
+        for (var key of Object.keys(packet.players)) {
+          var data = packet.players[key];
 
-          addDebil(playerData.pos.x, playerData.pos.y, playerData.className, playerData.name, playerData.id);
+          var p = players.add(data.pos.x, data.pos.y, data.prof, data.name, data.id);
+          p.id        = data.id;
+          p.maxHP     = data.stats.maxHP;
+          p.hp        = data.stats.hp;
+          p.hpRegen   = data.stats.hpRegen;
+          p.def       = data.stats.def;
+          p._maxSpeed = data.stats.speed;
+          p.crit      = data.stats.crit;
         }
       });
 
@@ -182,62 +224,71 @@ var GameState = (function() {
       });
 
       io.on('s_attack', function(id) {
-        var p = players[id];
+        var p = players.get(id);
         if (!p) {
           return;
         }
 
-        p.attack();
+        p.attack(0);
+      });
+
+      io.on('s_playerAnimation', function(data) {
+        // is it us?
+        if (data.id == player.id) {
+          player.attack(data.animationIndex);
+        }
+        else {
+          var p = players.get(data.id);
+          if (!p) {
+            return;
+          }
+
+          p.attack(data.animationIndex);
+        }
       });
 
       io.on('s_damagePlayer', function(data) {
-        var x, y;
+        var x, y, p;
 
         // is it us?
         if (data.id == player.id) {
-          var x = player.x;
-          var y = player.y - player.anim.height - 15;
-
-          player.dealDamage(data.damage);
-          
-          console.warn("It hurts!");
+          p = player;
         }
         else {
-          var p = players[data.id];
+          p = players.get(data.id);
           if (!p) {
             return;
           }
-          console.log('damaged '+data.id);
-
-          x = p.x;
-          y = p.y - p.anim.height - 15;
         }
 
-        hitTextManager.create(x, y, data.damage);
+        p.hp = data.hp;
+
+        x = p.x;
+        y = p.y - p.anim.height - 18;
+        hitTextManager.create(x, y, data.damage, data.isCrit);
       });
       
       io.on('s_playerDied', function(playerData) {
+        var _p = null;
+
         // is it us?
         if (playerData.id == player.id) {
-          player.x = playerData.x;
-          player.y = playerData.y;
+          _p = player;
+          
         }
         else {
-          var p = players[playerData.id];
-          if (!p) {
+          _p = players.get(playerData.id);
+          if (!_p) {
             return;
           }
-          
-          p.x = playerData.x;
-          p.y = playerData.y;
         }
 
-        // sprites.push(new Sprite(
-        //   Loader.loadImage("img/statue.png"),
-        //   playerData.deathX,
-        //   playerData.deathY,
-        //   { x: 9, y: 20 }
-        // ));
+        _p.x = playerData.x;
+        _p.y = playerData.y;
+        _p.lvl   = 1;
+        _p.xp    = 0;
+        _p.maxHP = playerData.stats.maxHP;
+        _p.hp    = playerData.stats.hp;
       });
     }
 
@@ -304,8 +355,7 @@ var GameState = (function() {
         camera.y = 0;
       }
 
-      for (var key of Object.keys(players)) {
-        var p = players[key];
+      for (var p of players.toArray()) {
         p.update();
       }
 
@@ -317,6 +367,15 @@ var GameState = (function() {
       for (var mob of mobs) {
         mob.update();
       }
+
+      // target
+      covered = [];
+      for (var sprite of sprites) {
+        if (sprite.getBoundingBox().intersects(mouse.x, mouse.y)) {
+          covered.push(sprite);
+        }
+      }
+      target = covered.sort((l, r) => l.y - r.y).pop();
 
       dustSpawner.update();
 
@@ -334,7 +393,9 @@ var GameState = (function() {
       ctx.scale(camera.zoom, camera.zoom);
       ctx.translate(-camera.x, -camera.y);
 
-      floor.render(ctx);
+      if (floor) {
+        floor.render(ctx);
+      }
 
       // Show direction
       ctx.save();
@@ -350,6 +411,14 @@ var GameState = (function() {
       ctx.drawImage(cursorImg, - cursorImg.width / 2, - 8);
       ctx.restore();
 
+      // if (target) {
+      //   ctx.drawImage(
+      //     targetTexture,
+      //     target.x - targetTexture.width / 2,
+      //     target.y - targetTexture.height / 2 - 2
+      //   );
+      // }
+
       var toDraw = []
         .concat(sprites)
         .concat(mobs)
@@ -357,8 +426,7 @@ var GameState = (function() {
         .concat(dustSpawner.particles)
         .concat(hitTextManager.particles);
       
-      for (var key of Object.keys(players)) {
-        var p = players[key];
+      for (var p of players.toArray()) {
         toDraw.push(p);
         for (var particle of p._dustSpawner.particles) {
           toDraw.push(particle);
@@ -377,6 +445,16 @@ var GameState = (function() {
       for (var i = 0; i < toDraw.length; i++) {
         try {
           toDraw[i].render(ctx);
+          if (toDraw[i] instanceof Player) {
+            var p = toDraw[i];
+            if (p.id == player.id) {
+              toDraw[i].renderName(ctx);
+            }
+            else {
+              toDraw[i].renderName(ctx);
+              toDraw[i].renderHP(ctx);
+            }
+          }
         }
         catch (e) {
           console.warn(toDraw[i]);
@@ -410,10 +488,6 @@ var GameState = (function() {
       if (keyCode == Keyboard.E) {
         inventoryOpen = !inventoryOpen;
       }
-
-      if (keyCode == Keyboard.F) {
-        hitTextManager.create(player.x, player.y - player.anim.height - 15, 10);
-      }
     }
     
     keyUp(key) {
@@ -428,7 +502,13 @@ var GameState = (function() {
     }
 
     click(e) {
-      player.attack(mouse);
+      if (player.canAttack()) {
+        console.log('attack');
+        io.emit('c_registerAttack', {
+          index: 0,
+          mouse: { x: mouse.x, y: mouse.y }
+        });
+      }
       _moved = true;
     }
     

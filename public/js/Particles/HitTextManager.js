@@ -1,9 +1,10 @@
 var HitTextManager = (function() {
 
   class HitText extends Entity {
-    constructor(x = 0, y = 0, damage = 0) {
+    constructor(x = 0, y = 0, damage = 0, isCrit = false) {
       super(x, y);
       this.damage = damage;
+      this.isCrit = isCrit;
 
       this.opcaity = 1;
 
@@ -21,7 +22,12 @@ var HitTextManager = (function() {
     }
 
     render(ctx = new CanvasRenderingContext2D) {
-      TextRenderer.render(ctx, `-${this.damage}`, this.x, this.y, {
+      var text = `-${this.damage}`;
+      if (this.isCrit) {
+        text = "crit " + text;
+      }
+
+      TextRenderer.render(ctx, text, this.x, this.y, {
         color:   "#ee0044",
         opcaity: this.opcaity
       });
@@ -33,8 +39,8 @@ var HitTextManager = (function() {
       this.particles = [];
     }
 
-    create(x = 0, y = 0, damage = 0) {
-      this.particles.push(new HitText(x, y, damage));
+    create(x = 0, y = 0, damage = 0, isCrit = false) {
+      this.particles.push(new HitText(x, y, damage, isCrit));
     }
 
     update() {

@@ -8,6 +8,8 @@ class Playable extends Entity {
     this._minSpeed  = .85;
     this._maxSpeed  = 1.35;
     this._stopSpeed = 1;
+
+    this._prevAttackTime = 0;
   }
 
   pack() {
@@ -19,18 +21,25 @@ class Playable extends Entity {
     };
   }
 
-  attack(mouse) {
+  canAttack() {
+    var elapsed = Date.now() - this._prevAttackTime;
+    if (elapsed > 400) {
+      this._prevAttackTime = Date.now();
+      return true;
+    }
+
+    return false;
+  }
+
+  attack(index = 0, cb = function() {}) {
     if (!this.attacking) {
       this.attacking = true;
 
       this.rooted = true;
 
-      this.currentState = this.states.ATTACK;
+      this.currentState = index;
       this.anim.play(this.currentState, () => {
-        // Send data to server here
-        io.emit('c_attack', {
-          mouse: { x: mouse.x, y: mouse.y }
-        });
+        cb();
         
         this.anim.pause();
         setTimeout(() => {

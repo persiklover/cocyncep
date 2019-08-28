@@ -1,16 +1,18 @@
-var FakePlayer = (function () {
+var PlayerBase = (function () {
 
   return class extends Entity {
-    constructor(x, y, className, name) {
+    constructor(x = 0, y = 0, prof = "", name ="") {
       super(x, y);
 
-      this.className = className;
-      this.anim = animationList[className].clone();
+      this.dx = 0;
+      this.dy = 0;
+
+      this.prof = prof;
+      this.anim = animationList[prof].clone();
       this.states = {
         IDLE:   0,
         RUN:    1,
-        ATTACK: 2,
-        WALK:   3
+        ATTACK: 2
       };
       this.currentState = this.states.IDLE;
 
@@ -42,6 +44,9 @@ var FakePlayer = (function () {
       this.anim.setIndex(this.currentState);
       this.anim.facingRight = this.facingDirection.x > 0;
       this.anim.update();
+
+      this.x += this.dx;
+      this.y += this.dy;
     }
 
     get facingRight() { return this.facingDirection.x > 0; }
